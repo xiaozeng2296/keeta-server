@@ -5,6 +5,22 @@ from farm.network.proxy import ProxyRoute, normalize_proxy
 
 
 class ProxyRouteTests(unittest.TestCase):
+    def test_transport_diagnostic_reports_connect_status_without_private_text(self):
+        import json
+        import requests
+        from urllib3.exceptions import MaxRetryError, ProxyError
+        from farm.network.proxy import transport_failure_details
+        inner=OSError('Tunnel connection failed: 502 Bad Gateway private-password')
+        proxy=ProxyError('http://secret-user:secret-pass@example.test',inner)
+        outer=requests.exceptions.ProxyError(MaxRetryError(None,'https://example.test/?token=private-token',proxy))
+        result=transport_failure_details(outer)
+        self.assertEqual(result['tunnel_http_status'],[502])
+        self.assertEqual(result['error_types'],['MaxRetryError','OSError','ProxyError'])
+        for secret in ('private-','secret-','example.test'):
+            self.assertNotIn(secret,json.dumps(result))
+        inner.__cause__=outer
+        self.assertEqual(transport_failure_details(outer),result)
+
 
     def test_gateway_shorthand_is_normalized_without_losing_credentials(self):
         value = normalize_proxy("gate.example:58688:customer-session:TQv")

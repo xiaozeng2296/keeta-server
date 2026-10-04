@@ -10,6 +10,7 @@ import ipaddress
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import socket
 import subprocess
@@ -20,6 +21,21 @@ from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
 DEFAULT_GOST = "/opt/homebrew/bin/gost"
 _PROXY_SCHEMES = {"http", "https", "socks5", "socks5h"}
+
+
+def transport_failure_details(error):
+    """Keep transport stages and CONNECT status, never exception text/URLs."""
+    pending=[error];seen=set();kinds=set();statuses=set()
+    while pending and len(seen)<16:
+        current=pending.pop()
+        if id(current) in seen:continue
+        seen.add(id(current));kinds.add(type(current).__name__)
+        statuses.update(int(code) for code in re.findall(
+            r'Tunnel connection failed: ([1-5][0-9]{2})\b',str(current)))
+        for child in (current.__cause__,current.__context__,getattr(current,'reason',None),
+                      getattr(current,'original_error',None),*current.args):
+            if isinstance(child,BaseException):pending.append(child)
+    return {'error_types':sorted(kinds),'tunnel_http_status':sorted(statuses)}
 
 
 def _fail(message="invalid proxy"):

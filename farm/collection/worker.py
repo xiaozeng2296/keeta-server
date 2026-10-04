@@ -20,7 +20,7 @@ from farm.accounts.importer import ATTEMPT_SQL,refresh_account_material
 from mtgsig.signer import FullSigner
 from farm.collection.context import RequestContext
 from farm.collection.templates import validate_account_request
-from farm.network.proxy import ProxyRoute, is_ipfoxy, refresh_ipfoxy
+from farm.network.proxy import ProxyRoute, is_ipfoxy, refresh_ipfoxy, transport_failure_details
 
 
 def menu_followups(endpoint,response,payload):
@@ -531,6 +531,10 @@ class Worker:
             # A DB failure must not turn valid account material into a local
             # signing error, nor overwrite a response awaiting SQL commit.
             if persisting or isinstance(exc,pymysql.err.Error):raise
+            if sent and isinstance(exc,requests.RequestException):
+                log_failure('business_transport_error',exc,execution_id=getattr(self,'execution_id',None),
+                            account_id=claim['account']['account_id'],task_id=claim['task']['id'],
+                            endpoint=claim['task']['endpoint'],**transport_failure_details(exc))
             # Error type only: request exceptions may embed tokens/URLs.
             persisting=True
             return self.durable_finish(claim,error=type(exc).__name__,sent=sent)
