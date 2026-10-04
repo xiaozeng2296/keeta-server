@@ -304,13 +304,14 @@ def clash_pool_summary(store):
 
 
 
-def assign_account_proxies(store,account_ids,mode='clash_pool',*,proxy=None,front_proxy=None,refresh=False,node_name=None):
+def assign_account_proxies(store,account_ids,mode='clash_pool',*,proxy=None,front_proxy=None,refresh=False,node_name=None,proxy_id=None):
     """Change account routes under the same account locks used by collectors."""
     from farm.storage.mysql import utcnow
     from farm.accounts.selection import parse_ids
     from collections import Counter
+    from farm.network.catalog import BINDINGS, ProxyConfigError, resolve_route, read_setting, write_setting
     ids=parse_ids(account_ids)
-    if not ids or mode not in ('clash_pool','saved','manual'):raise ValueError('explicit account IDs and route required')
+    if not ids or mode not in ('clash_pool','saved','manual','catalog'):raise ValueError('explicit account IDs and route required')
     if mode=='manual':
         proxy,front_proxy=normalize_route(proxy,front_proxy)
         if not proxy:raise ValueError('请填写出口代理')
@@ -320,6 +321,7 @@ def assign_account_proxies(store,account_ids,mode='clash_pool',*,proxy=None,fron
     if node_name and (mode!='clash_pool' or node_name not in {n['name'] for n in nodes}):
         raise ValueError('请选择节点池内的有效节点')
     for node in nodes:_endpoint(node['proxy'],loopback=True)
+    selected_route=resolve_route(store,proxy_id) if mode=='catalog' else None
     defaults=proxy_defaults(store)
     con=store.connect();locks=[];results=[]
     try:
@@ -328,7 +330,17 @@ def assign_account_proxies(store,account_ids,mode='clash_pool',*,proxy=None,fron
                 c.execute('SELECT GET_LOCK(%s,0) locked',(name,))
                 if c.fetchone()['locked']!=1:raise ValueError('账号正在请求，当前请求结束后再分配出口')
                 locks.append(name)
+            c.execute("SELECT account_ids FROM executions WHERE state IN ('queued','running','waiting','interrupted')")
+            for execution in c.fetchall():
+                selected=execution['account_ids']
+                if isinstance(selected,str):selected=json.loads(selected)
+                if set(ids).intersection(selected):
+                    raise ProxyConfigError('所选账号仍在批次中，请先停止该批次再修改出口')
             bindings=store.get_setting('clash_node_bindings') or {}
+            account_bindings=read_setting(store,c,BINDINGS)
+            if selected_route:
+                selected_route=read_setting(store,c,'proxy_catalog').get(proxy_id)
+                if not selected_route:raise ProxyConfigError('代理不存在，请刷新列表')
             available={n['name']:n for n in nodes}
             usage=Counter(n for aid,n in bindings.items() if n in available and int(aid) not in ids)
             for aid in ids:
@@ -344,18 +356,28 @@ def assign_account_proxies(store,account_ids,mode='clash_pool',*,proxy=None,fron
                         bundle['saved_proxy_route']={k:bundle.get(k) for k in ('proxy','front_proxy','refresh_ipfoxy')}
                     bundle.update(proxy=node['proxy'],front_proxy=None,refresh_ipfoxy=False,
                                   clash_node={'name':node['name'],'exit_ip':node.get('exit_ip')})
+                    account_bindings[str(aid)]={'mode':'clash_pool','name':node['name'],'node_name':node['name']}
+                    bundle.pop('proxy_catalog_id',None)
                     results.append({'account_id':aid,'node':node['name'],'proxy':node['proxy']})
                 else:
                     route=({'proxy':proxy,'front_proxy':front_proxy,'refresh_ipfoxy':refresh}
-                           if mode=='manual' else bundle.get('saved_proxy_route') or defaults)
+                           if mode=='manual' else selected_route if mode=='catalog' else bundle.get('saved_proxy_route') or defaults)
                     proxy,front=normalize_route(route.get('proxy'),route.get('front_proxy'))
                     if not proxy:raise ValueError('没有保存的出口，请先配置默认代理')
                     bundle.update(proxy=proxy,front_proxy=front,refresh_ipfoxy=bool(route.get('refresh_ipfoxy')))
                     bundle.pop('clash_node',None);bindings.pop(str(aid),None)
+                    if mode=='catalog':
+                        bundle['proxy_catalog_id']=proxy_id
+                        bundle['saved_proxy_route']={k:route.get(k) for k in ('proxy','front_proxy','refresh_ipfoxy')}
+                        account_bindings[str(aid)]={'mode':'catalog','name':route['name'],'proxy_id':proxy_id,'front_node':route['front_node']}
+                    else:
+                        bundle.pop('proxy_catalog_id',None)
+                        account_bindings[str(aid)]={'mode':mode,'name':proxy_summary(route)['gateway']}
                     if mode=='manual':bundle['saved_proxy_route']=dict(route)
                     results.append({'account_id':aid,'route':mode})
                 key,blob=store.seal(bundle)
                 c.execute('UPDATE account_sessions SET encryption_key_id=%s,credential_blob=%s,updated_at=%s WHERE id=%s',(key,blob,utcnow(),row['id']))
+            write_setting(store,c,BINDINGS,account_bindings)
             key,blob=store.seal(bindings)
             c.execute("INSERT INTO encrypted_settings(setting_key,encryption_key_id,credential_blob,updated_at) VALUES('clash_node_bindings',%s,%s,%s) ON DUPLICATE KEY UPDATE encryption_key_id=VALUES(encryption_key_id),credential_blob=VALUES(credential_blob),updated_at=VALUES(updated_at)",(key,blob,utcnow()))
         con.commit();return results

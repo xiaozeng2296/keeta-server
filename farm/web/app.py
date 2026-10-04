@@ -28,6 +28,7 @@ from farm.accounts.importer import split_curls
 from farm.storage.admin import DeletionConflict, delete_accounts, delete_runs
 from farm.accounts.controls import probe_account, clear_cooldown
 from farm.accounts.checks import CheckError
+from farm.network.catalog import ProxyConfigError
 
 
 class StateCache:
@@ -159,6 +160,7 @@ def create_app(store=None):
         if isinstance(exc,DeletionConflict):return jsonify(error=str(exc),error_type='DeletionConflict'),409
         if isinstance(exc,CheckError):return jsonify(error=str(exc),status=str(exc),sent=False),409
         if isinstance(exc,HTTPException):return jsonify(error=exc.name),exc.code
+        if isinstance(exc,ProxyConfigError):return jsonify(error=str(exc),error_type='ProxyConfigError'),400
         if isinstance(exc,ValueError):return jsonify(error='输入或材料校验失败，请检查文件格式和筛选条件',error_type='ValueError'),400
         return jsonify(error='操作失败，请检查数据库连接或运行状态',error_type=type(exc).__name__),500
 
@@ -213,7 +215,10 @@ def create_app(store=None):
                 capabilities=reader.rows('''SELECT a.id account_id,c.endpoint,c.state,c.observed_at,c.not_before,c.http_status,c.business_code
                     FROM accounts a JOIN capabilities c ON c.session_id=a.active_session_id ORDER BY a.id,c.endpoint''')
                 bindings=reader.get_setting('clash_node_bindings') or {}
-                for account in accounts:account['proxy_node']=bindings.get(str(account['id']))
+                routes=reader.get_setting('account_proxy_bindings') or {}
+                for account in accounts:
+                    route=routes.get(str(account['id'])) or {}
+                    account['proxy_node']=route.get('name') or bindings.get(str(account['id']))
                 data.update(accounts=accounts,daily=daily,budgets=budgets,capabilities=capabilities)
                 rests=reader.rows("SELECT account_id,endpoint,state,rest_until,settings FROM experiment_members WHERE rest_until>%s OR state='stopped'",(utcnow(),))
                 controls={}
@@ -332,7 +337,29 @@ def create_app(store=None):
         data=request.get_json() or {}
         return jsonify(accounts=assign_account_proxies(store,data.get('ids'),data.get('mode','clash_pool'),
             proxy=data.get('proxy'),front_proxy=data.get('front_proxy'),refresh=data.get('refresh_ipfoxy') in (True,'true'),
-            node_name=data.get('node_name')))
+            node_name=data.get('node_name'),proxy_id=data.get('proxy_id')))
+
+    @app.get('/api/proxies')
+    def proxies():
+        from farm.network.catalog import inventory
+        return jsonify(inventory(store))
+
+    @app.post('/api/proxies/import')
+    def proxies_import():
+        from farm.network.catalog import import_routes
+        data=request.get_json() or {}
+        return jsonify(import_routes(store,data.get('text'),data.get('front_node'),data.get('refresh_ipfoxy') is True))
+
+    @app.post('/api/proxies/check')
+    def proxies_check():
+        from farm.network.catalog import check_route
+        data=request.get_json() or {}
+        return jsonify(check_route(store,proxy_id=data.get('proxy_id'),node_name=data.get('node_name')))
+
+    @app.post('/api/proxies/delete')
+    def proxies_delete():
+        from farm.network.catalog import delete_route
+        return jsonify(delete_route(store,(request.get_json() or {}).get('proxy_id')))
 
     @app.get('/api/proxy-settings')
     def proxy_settings():

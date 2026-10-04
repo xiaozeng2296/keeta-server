@@ -80,6 +80,7 @@ async function showLocalRun(id){
 document.addEventListener('click',e=>{const button=e.target.closest('[data-local-run]');if(button)showLocalRun(button.dataset.localRun);});
 
 async function refresh(){
+if(activeTab==='proxies'){if(typeof loadProxyPanel==='function')await loadProxyPanel();return;}
 const scope=['batches','executions'].includes(activeTab)?'batches':'accounts';
 if(scope==='batches')refreshLocalRuns();
 const day=$('#stats-date').value,key=scope+':'+day;
@@ -97,7 +98,7 @@ render();$('#updated').textContent='数据时间 '+new Date(update.server_time).
 }catch(e){notice(e.message);$('#updated').textContent='更新失败，可点击刷新重试';}
 finally{refreshing.delete(key);}
 }
-function tab(name){activeTab=name;history.replaceState(null,'','#'+name);$$('.tab').forEach(e=>e.hidden=e.id!=='tab-'+name);$$('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));$('#page-title').textContent=({accounts:'账号概览',daily:'每日统计',batches:'任务批次',executions:'运行记录'})[name];refresh();}
+function tab(name){activeTab=name;document.body.dataset.page=name;history.replaceState(null,'','#'+name);$$('.tab').forEach(e=>e.hidden=e.id!=='tab-'+name);$$('nav button').forEach(e=>e.classList.toggle('active',e.dataset.tab===name));$('#page-title').textContent=({accounts:'账号概览',daily:'每日统计',batches:'任务批次',executions:'运行记录',proxies:'代理管理'})[name];refresh();}
 function values(form){return Object.fromEntries(new FormData(form));}
 function bindForm(id,handler){$(id).addEventListener('submit',async e=>{e.preventDefault();const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;try{const result=await handler(e.target);e.target.closest('dialog').close();notice(JSON.stringify(result,null,2));await refresh();}catch(err){notice(err.message);}finally{btn.disabled=false;}});}
 $$('.endpoint-options').forEach(s=>s.innerHTML=Object.entries(E).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
@@ -107,27 +108,13 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
 $('#preview-accounts').onclick=async()=>{try{const r=await api('/api/accounts/select',values($('#run-form')));$('#selected-accounts').textContent=r.accounts.length?r.accounts.map(a=>`#${a.id} ${a.label}${a.paused?'（暂停）':''}`).join('、'):'没有匹配账号';}catch(e){notice(e.message);}};
 bindForm('#import-form',async f=>{const r=await api('/api/accounts/import',new FormData(f));f.reset();return r;});
 bindForm('#profile-form',f=>{const v=values(f);if(v.paused==='')delete v.paused;else v.paused=v.paused==='true';return api('/api/accounts/profile',v);});
-function proxyModeChanged(){
- const form=$('#proxy-form'),mode=form.elements.mode.value;
- $$('[data-proxy-mode]').forEach(group=>{const active=group.dataset.proxyMode===mode;group.hidden=!active;group.querySelectorAll('input,select').forEach(input=>input.disabled=!active);});
- form.elements.proxy.required=mode==='manual';
-}
 async function openProxyDialog(accountId){
- const form=$('#proxy-form');form.reset();
- form.elements.ids.value=accountId?String(accountId):(state?filteredAccounts().map(a=>a.id).join(','):$('#filter-ids').value);
- const current=state?.accounts.find(a=>a.id===accountId)?.proxy_node;
- form.elements.mode.value=current?'clash_pool':'saved';
- form.elements.node_name.innerHTML='<option value="">自动分配（保留已有绑定）</option>';
- proxyModeChanged();$('#proxy-dialog').showModal();
- try{
-  const pool=await api('/api/proxy-pool');
-  form.elements.node_name.innerHTML='<option value="">自动分配（保留已有绑定）</option>'+(pool.nodes||[]).map(n=>`<option value="${esc(n.name)}">${esc(n.name)}${n.exit_ip?' · '+esc(n.exit_ip):' · 未验证出口'}</option>`).join('');
-  if(current)form.elements.node_name.value=current;
-  $('#clash-pool-summary').textContent=pool.configured?`可选 ${pool.node_count} 个节点，已核验 ${pool.verified_exits} 个不同出口 IP。`:'尚未配置独立节点池；可使用已保存或手动代理。';
- }catch(err){$('#clash-pool-summary').textContent='节点列表读取失败，可使用已保存或手动代理。';}
+ const ids=accountId?String(accountId):(state?filteredAccounts().map(a=>a.id).join(','):'');
+ if(!await loadProxyPanel())return;
+ tab('proxies');
+ if(accountId)editProxyAccount(accountId);
+ else $('#catalog-bind-form').elements.ids.value=ids;
 }
-$('#proxy-form').elements.mode.onchange=proxyModeChanged;
-bindForm('#proxy-form',f=>api('/api/accounts/proxy',values(f)));
 bindForm('#budget-form',f=>api('/api/budgets',values(f)));
 bindForm('#tasks-form',async f=>{const r=await api('/api/tasks/import',new FormData(f));tab('batches');return r;});
 bindForm('#run-form',async f=>{const v=values(f);v.endpoints=new FormData(f).getAll('endpoints');if(!v.endpoints.length)throw Error('请至少选择一个接口');const r=await api('/api/executions',v);tab('executions');return r;});
@@ -159,10 +146,10 @@ async function removeRuns(ids){
 }
 $('#delete-accounts').onclick=async()=>{try{await removeAccounts(filteredAccounts().map(a=>a.id));}catch(e){notice(e.message);}};
 $('#delete-batches').onclick=async()=>{try{await removeRuns($$('[data-select-run]:checked').map(el=>Number(el.dataset.selectRun)));}catch(e){notice(e.message);}};
-tab(['accounts','daily','batches','executions'].includes(location.hash.slice(1))?location.hash.slice(1):'accounts');setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]'))refresh();},15000);
+tab(['accounts','daily','batches','executions','proxies'].includes(location.hash.slice(1))?location.hash.slice(1):'accounts');setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]'))refresh();},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 
 api('/api/proxy-settings').then(p=>{$('#proxy-summary').textContent=p.configured?'默认出口：'+p.gateway+(p.front_proxy_enabled?'（经过前置代理）':'')+(p.refresh_ipfoxy?'，已启用 IPFoxy 刷新':''):'尚未配置默认出口，请填写后保存。';}).catch(()=>{});
-api('/api/proxy-pool').then(p=>{$('#clash-pool-summary').textContent=p.configured?`节点池有 ${p.node_count} 个候选节点，已核验 ${p.verified_exits} 个不同出口 IP；其余节点按需验证。`:'尚未配置独立 Clash 节点池。';}).catch(()=>{});
+
 
 $('#filter-search').addEventListener('input',()=>{if(state)render();});

@@ -486,6 +486,33 @@ class LocalStorageWorkflowTests(unittest.TestCase):
     setUp=MysqlIntegrationTests.setUp
     tearDown=MysqlIntegrationTests.tearDown
 
+    def test_claim_connection_reuse_releases_account_and_untracked_locks(self):
+        con=self.store.lock_connection();extra='validation:'+self.tag
+        try:
+            with con.cursor() as c:
+                c.execute('SELECT CONNECTION_ID() id');connection_id=c.fetchone()['id']
+                c.execute('SELECT GET_LOCK(%s,0) locked',(extra,))
+                self.assertEqual(c.fetchone()['locked'],1)
+            self.assertNotEqual(self.store.rows('SELECT CONNECTION_ID() id')[0]['id'],connection_id)
+        finally:self.worker._release_locks(con,[])
+        self.assertEqual(self.store.rows('SELECT IS_FREE_LOCK(%s) available',(extra,))[0]['available'],1)
+        self.claim=self.worker.claim(self.rid,self.aid)
+        with self.claim['connection'].cursor() as c:
+            c.execute('SELECT CONNECTION_ID() id');self.assertEqual(c.fetchone()['id'],connection_id)
+        names=list(self.claim['locks'])
+        self.worker.finish(self.claim,error='SyntheticStop',sent=False)
+        self.worker._release_locks(self.claim['connection'],names);self.claim=None
+        for name in names:
+            self.assertEqual(self.store.rows('SELECT IS_FREE_LOCK(%s) available',(name,))[0]['available'],1)
+
+    def test_empty_claims_reuse_connection_without_reserving_quota(self):
+        with self.store.transaction() as c:
+            c.execute('UPDATE capabilities SET state=%s WHERE session_id=%s',('needs_material',self.sid))
+        with patch.object(self.store,'connect',wraps=self.store.connect) as connect:
+            for _ in range(3):self.assertIsNone(self.worker.claim(self.rid,self.aid))
+            self.assertEqual(connect.call_count,1)
+        self.assertEqual(self.store.rows('SELECT COUNT(*) n FROM request_attempts WHERE account_id=%s',(self.aid,))[0]['n'],0)
+
     def test_unavailable_product_is_recorded_without_detail_http_and_reopens_with_new_evidence(self):
         from farm.storage.responses import MAGIC,load_response
         with self.store.transaction() as c:
@@ -521,3 +548,44 @@ class LocalStorageWorkflowTests(unittest.TestCase):
             self.store.result(c,self.job,self.aid,'shopInfo',{'code':0,'data':{'name':'Shop','status':3}},utcnow())
         self.assertEqual(manager.release_opening_selection(self.rid),'released')
         self.assertEqual(self.store.rows("SELECT state FROM tasks WHERE shop_job_id=%s AND endpoint='productList'",(self.job,))[0]['state'],'pending')
+
+    def test_catalog_route_assignment_preserves_identity_and_refuses_active_batch(self):
+        from farm.network.catalog import import_routes, delete_route, ProxyConfigError, CATALOG, BINDINGS
+        from farm.network.proxy import assign_account_proxies
+        original_get=self.store.get_setting
+        previous={k:original_get(k) or {} for k in (CATALOG,BINDINGS,'clash_node_bindings')}
+        pool={'nodes':[{'name':'test-front','proxy':'http://127.0.0.1:18990'}]}
+        original=self.store.unseal(self.store.rows('SELECT * FROM account_sessions WHERE id=%s',(self.sid,))[0])
+        def setting(name):return pool if name=='clash_node_pool' else original_get(name)
+        execution=None
+        try:
+            with patch.object(self.store,'get_setting',side_effect=setting):
+                route=import_routes(self.store,'socks5://synthetic:pass@192.0.2.10:45001','test-front')['ids'][0]
+                assign_account_proxies(self.store,[self.aid],'catalog',proxy_id=route)
+                current=self.store.unseal(self.store.rows('SELECT * FROM account_sessions WHERE id=%s',(self.sid,))[0])
+                self.assertEqual(current['device'],original['device'])
+                self.assertEqual(current['proxy'],'socks5://synthetic:pass@192.0.2.10:45001')
+                self.assertEqual(current['front_proxy'],'http://127.0.0.1:18990')
+                self.assertEqual(original_get(BINDINGS)[str(self.aid)]['proxy_id'],route)
+                with self.assertRaises(ProxyConfigError):delete_route(self.store,route)
+                with self.store.transaction() as c:
+                    c.execute("INSERT INTO executions(run_id,environment,selection,account_ids,endpoints,max_requests,delay_seconds,created_at) VALUES(%s,'test','{}',%s,'[]',1,4,%s)",(self.rid,compact([self.aid]),utcnow()))
+                    execution=c.lastrowid
+                before=self.store.rows('SELECT credential_blob FROM account_sessions WHERE id=%s',(self.sid,))[0]['credential_blob']
+                with self.assertRaises(ProxyConfigError):assign_account_proxies(self.store,[self.aid],'clash_pool',node_name='test-front')
+                self.assertEqual(before,self.store.rows('SELECT credential_blob FROM account_sessions WHERE id=%s',(self.sid,))[0]['credential_blob'])
+        finally:
+            if execution:
+                with self.store.transaction() as c:c.execute('DELETE FROM executions WHERE id=%s',(execution,))
+            for k,v in previous.items():self.store.set_setting(k,v)
+
+    def test_route_assignment_to_missing_account_rolls_back_other_bindings(self):
+        from farm.network.proxy import assign_account_proxies
+        from farm.network.catalog import BINDINGS
+        original_get=self.store.get_setting;before=original_get(BINDINGS) or {}
+        blob=self.store.rows('SELECT credential_blob FROM account_sessions WHERE id=%s',(self.sid,))[0]['credential_blob']
+        def setting(name):return {'nodes':[{'name':'test-front','proxy':'http://127.0.0.1:18990'}]} if name=='clash_node_pool' else original_get(name)
+        with patch.object(self.store,'get_setting',side_effect=setting):
+            with self.assertRaises(ValueError):assign_account_proxies(self.store,[self.aid,9223372036854775000],node_name='test-front')
+        self.assertEqual(blob,self.store.rows('SELECT credential_blob FROM account_sessions WHERE id=%s',(self.sid,))[0]['credential_blob'])
+        self.assertEqual(before,original_get(BINDINGS) or {})

@@ -73,6 +73,9 @@ class Store:
         self.key_path=self.config_path.with_name('account_encryption.key')
         self._connections=queue.LifoQueue(maxsize=16)
         self._connection_slots=threading.BoundedSemaphore(16)
+        # Claims retain named locks during HTTP and use nested transactions.
+        # Keep their connections separate from the transaction pool.
+        self._lock_connections=queue.LifoQueue(maxsize=16)
 
     def connect(self,*,database=True):
         cfg={k:v for k,v in self.config.items() if k in ('host','port','user','password','database','charset','connect_timeout','read_timeout','write_timeout')}
@@ -86,8 +89,8 @@ class Store:
             close_connection(con);raise
         return con
 
-    def _checkout(self):
-        pool=getattr(self,'_connections',None)
+    def _checkout(self,pool=None):
+        if pool is None:pool=getattr(self,'_connections',None)
         while pool is not None:
             try:con,idle_since=pool.get_nowait()
             except queue.Empty:break
@@ -100,6 +103,22 @@ class Store:
                 close_connection(con)
                 if not transient_database_error(exc):raise
         return self.connect()
+
+    def lock_connection(self):
+        return self._checkout(self._lock_connections)
+
+    def release_lock_connection(self,con):
+        try:
+            # End row locks before reusing the session. RELEASE_ALL_LOCKS also
+            # removes a proxy-refresh lock if its own cleanup was interrupted.
+            con.rollback()
+            with con.cursor() as c:c.execute('SELECT RELEASE_ALL_LOCKS()')
+        except Exception as exc:
+            log_failure('account_lock_cleanup',exc)
+        else:
+            try:self._lock_connections.put_nowait((con,time.monotonic()));con=None
+            except queue.Full:pass
+        finally:close_connection(con)
 
     @contextmanager
     def transaction(self):

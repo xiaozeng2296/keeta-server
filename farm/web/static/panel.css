@@ -7,3 +7,9 @@ button.danger{color:#b34436;border-color:#e2b7b0}.batch-footer{flex-wrap:wrap}.b
 #failure-response-dialog{width:min(900px,94vw)}#failure-response-body{white-space:pre-wrap;overflow-wrap:anywhere;max-height:65vh;overflow:auto;font-size:12px}
 
 #local-batches-grid:not(:empty){margin-bottom:16px}#local-run-dialog{width:min(1050px,96vw)}#local-run-body .table-wrap{max-height:38vh;margin:12px 0;overflow:auto}.batch.local-batch small{display:block;margin-top:5px;overflow-wrap:anywhere}.local-batch .batch-footer{flex-wrap:wrap}
+
+.proxy-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-bottom:24px}.proxy-layout form{display:flex;flex-direction:column;gap:12px}.proxy-layout p{font-size:13px;color:#64748b}.proxy-layout h3{margin:0}#tab-proxies>.card{margin:20px 0}#tab-proxies .table-wrap{margin-top:14px}#tab-proxies input[type=checkbox]{width:auto}#tab-proxies .card{padding:22px}@media(max-width:1000px){.proxy-layout{grid-template-columns:1fr}}
+
+#tab-proxies [hidden]{display:none!important}
+
+body[data-page="proxies"] .filters,body[data-page="proxies"] #metrics{display:none}

@@ -7,3 +7,5 @@
 - [协议](PROTOCOL.md)、[字段状态](MTGSIG_FIELDS_STATUS.md)、[更新协议](PROTOCOL_UPDATE.md)。
 - [测试用途](TESTING.md)、[提交与发布](VERSION_CONTROL.md)、[整理记录](MIGRATION.md)。
 - [关键原生证据](research/README.md)：只保留当前签名和 a7 相关记录。
+
+- [代理管理与六路采集](PROXIES.md)：导入代理、账号绑定、Clash 独立节点和链式出口。

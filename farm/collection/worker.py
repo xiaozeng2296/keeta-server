@@ -15,7 +15,7 @@ import requests
 import pymysql
 
 from farm.storage.mysql import (Store,PATHS,compact,digest,utcnow,business_day,unpack_json,classify,shop_is_closed,closed_shop_jobs,
-                             transient_database_error,log_failure,close_connection)
+                             transient_database_error,log_failure)
 from farm.accounts.importer import ATTEMPT_SQL,refresh_account_material
 from mtgsig.signer import FullSigner
 from farm.collection.context import RequestContext
@@ -181,11 +181,7 @@ class Worker:
         return results
 
     def _release_locks(self,con,names):
-        try:
-            with con.cursor() as c:
-                for name in reversed(names):c.execute('SELECT RELEASE_LOCK(%s)',(name,))
-        except Exception as exc:log_failure('account_lock_cleanup',exc)
-        finally:close_connection(con)
+        self.store.release_lock_connection(con)
 
     def recover(self,run_id=None):
         # Conservative recovery: a process could have died immediately before
@@ -228,7 +224,7 @@ class Worker:
         accounts=sorted(accounts,key=lambda a:(a['account_id']<=last,a['account_id']))
         for account in accounts:
             if getattr(self,'fingerprint_wait_until',{}).get(account['account_id'],0)>time.time():continue
-            con=self.store.connect();locks=[];claim=None;gate=None
+            con=self.store.lock_connection();locks=[];claim=None;gate=None
             try:
                 with con.cursor() as c:
                     c.execute('SET SESSION wait_timeout=300')
@@ -293,8 +289,6 @@ class Worker:
             finally:
                 if claim is None:
                     if gate is not None:gate.release()
-                    try:con.rollback()
-                    except Exception as exc:log_failure('claim_rollback',exc)
                     self._release_locks(con,locks)
         return None
 
@@ -436,7 +430,7 @@ class Worker:
             saved=self.store.unseal({'encryption_key_id':record['encryption_key_id'],'credential_blob':bytes.fromhex(record['blob'])})
             claim=saved['claim']
             if claim['task']['run_id']!=run_id:raise ValueError('journal run mismatch')
-            con=self.store.connect();locks=[]
+            con=self.store.lock_connection();locks=[]
             try:
                 with con.cursor() as c:
                     for name in claim['locks']:

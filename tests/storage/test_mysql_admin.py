@@ -387,6 +387,7 @@ class DatabaseRecoveryTests(unittest.TestCase):
         from farm.storage.mysql import Store
         store=object.__new__(Store);store.config={}
         store._connections=queue.LifoQueue(2);store._connection_slots=threading.BoundedSemaphore(2)
+        store._lock_connections=queue.LifoQueue(2)
         connection=MagicMock();store.connect=Mock(return_value=connection)
         return store,connection
 
@@ -448,9 +449,34 @@ class DatabaseRecoveryTests(unittest.TestCase):
         import pymysql
         from unittest.mock import MagicMock
         from farm.collection.worker import Worker
-        con=MagicMock();con.cursor.return_value.__enter__.return_value.execute.side_effect=pymysql.err.InterfaceError(0,'lost')
-        with patch('builtins.print'):Worker(Mock())._release_locks(con,['synthetic'])
+        store,con=self.store_with_connection()
+        con.cursor.return_value.__enter__.return_value.execute.side_effect=pymysql.err.InterfaceError(0,'lost')
+        with patch('builtins.print'):Worker(store)._release_locks(con,['synthetic'])
         con.close.assert_called_once()
+
+    def test_claim_connections_reuse_only_after_rollback_and_unlock(self):
+        from unittest.mock import call
+        store,con=self.store_with_connection()
+        for _ in range(3):
+            self.assertIs(store.lock_connection(),con)
+            store.release_lock_connection(con)
+        self.assertEqual(store.connect.call_count,1)
+        self.assertTrue(store._connections.empty())
+        self.assertEqual(con.rollback.call_count,3)
+        self.assertEqual(con.cursor.return_value.__enter__.return_value.execute.call_args_list,
+                         [call('SELECT RELEASE_ALL_LOCKS()')]*3)
+        con.close.assert_not_called()
+
+    def test_failed_claim_rollback_or_unlock_never_returns_connection_to_pool(self):
+        import pymysql
+        for failure in ('rollback','unlock'):
+            with self.subTest(failure=failure),patch('builtins.print'):
+                store,con=self.store_with_connection()
+                operation=con.rollback if failure=='rollback' else con.cursor.return_value.__enter__.return_value.execute
+                operation.side_effect=pymysql.err.InterfaceError(0,'lost')
+                store.release_lock_connection(con)
+                self.assertTrue(store._lock_connections.empty())
+                con.close.assert_called_once()
 
     def test_database_error_becomes_waiting_without_replaying_claim(self):
         import pymysql
@@ -478,13 +504,14 @@ class DatabaseRecoveryTests(unittest.TestCase):
         store.result.assert_not_called();store.enqueue.assert_not_called();store.observe.assert_not_called()
 
     def test_encrypted_response_survives_outage_and_replays_without_http(self):
-        import tempfile,pymysql
+        import tempfile,pymysql,queue
         from pathlib import Path
         from unittest.mock import MagicMock
         from farm.storage.mysql import Store
         from farm.collection.worker import Worker
         with tempfile.TemporaryDirectory() as tmp:
             store=object.__new__(Store);store.config_path=Path(tmp)/'mysql.json';store.key=lambda:b'K'*32
+            store._lock_connections=queue.LifoQueue(2)
             con=MagicMock();con.cursor.return_value.__enter__.return_value.fetchone.return_value={'locked':1}
             store.connect=Mock(return_value=con)
             store.record_traffic=Mock()
