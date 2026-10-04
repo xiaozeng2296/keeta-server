@@ -12,7 +12,7 @@ import traceback
 from pathlib import Path
 import secrets
 from zoneinfo import ZoneInfo
-import zlib
+from farm.response_files import load_response, save_response
 from urllib.parse import parse_qsl, urlsplit
 
 from Crypto.Cipher import AES
@@ -137,10 +137,12 @@ class Store:
                 time.sleep(.5*(2**attempt))
 
     def setup(self):
-        if self.config.get('database')!='keeta':raise ValueError('this migration only targets keeta')
+        database=self.config.get('database','')
+        if database!='keeta' and not (self.config.get('test_database') is True and re.fullmatch(r'keeta_test_[0-9a-f]+',database)):
+            raise ValueError('this migration only targets keeta or an explicit isolated test database')
         con=self.connect(database=False)
         try:
-            with con.cursor() as c:c.execute('CREATE DATABASE IF NOT EXISTS keeta CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci')
+            with con.cursor() as c:c.execute(f'CREATE DATABASE IF NOT EXISTS `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci')
             con.commit()
         finally:con.close()
         with self.transaction() as c:
@@ -229,13 +231,16 @@ class Store:
         allowed={'content-type','server','date','via','x-cache','cf-ray','retry-after','x-request-id'}
         diagnostic={'http_status':response.status_code,'headers':{k:v for k,v in response.headers.items() if k.lower() in allowed},
                     'body':body,'body_bytes':len(raw),'body_sha256':digest(raw),'truncated':len(raw)>limit,'redacted':True}
-        key,blob=self.seal(diagnostic)
+        reference,_=save_response(diagnostic)
+        key,blob=self.seal({'local_response_ref':reference.decode('ascii'),'body_sha256':diagnostic['body_sha256']})
         with self.transaction() as c:
             c.execute('INSERT INTO request_diagnostics(attempt_id,encryption_key_id,credential_blob,observed_at) VALUES(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE encryption_key_id=VALUES(encryption_key_id),credential_blob=VALUES(credential_blob),observed_at=VALUES(observed_at)',(attempt_id,key,blob,utcnow()))
 
     def failure_response(self,attempt_id):
         rows=self.rows('SELECT encryption_key_id,credential_blob FROM request_diagnostics WHERE attempt_id=%s',(attempt_id,))
-        return self.unseal(rows[0]) if rows else None
+        if not rows:return None
+        value=self.unseal(rows[0])
+        return load_response(value['local_response_ref'].encode('ascii')) if 'local_response_ref' in value else value
 
     def get_setting(self, name):
         rows=self.rows('SELECT encryption_key_id,credential_blob FROM encrypted_settings WHERE setting_key=%s',(name,))
@@ -278,10 +283,10 @@ class Store:
         return c.rowcount
 
     def result(self,c,shop_job_id,account_id,endpoint,response,observed_at,target='',task_id=None):
-        raw=compact(response).encode();sha=digest(raw)
+        reference,sha=save_response(response)
         key=digest([shop_job_id,account_id,endpoint,str(target),sha])
         c.execute('INSERT IGNORE INTO task_results(result_key,shop_job_id,task_id,account_id,endpoint,target_id,observed_at,valid_data,response_blob,response_sha256) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                  (key,shop_job_id,task_id,account_id,endpoint,str(target),observed_at,True,zlib.compress(raw),sha))
+                  (key,shop_job_id,task_id,account_id,endpoint,str(target),observed_at,True,reference,sha))
 
     def observe(self,c,session_id,endpoint,state,at,http=None,code=None,source=None,not_before=None):
         c.execute('SELECT observed_at FROM capabilities WHERE session_id=%s AND endpoint=%s FOR UPDATE',(session_id,endpoint));old=c.fetchone()
@@ -322,7 +327,7 @@ def shop_is_closed(response):
 def closed_shop_jobs(store,run_id):
     """Closed evidence for this batch; unknown states never waive details."""
     rows=store.rows("SELECT r.shop_job_id,r.response_blob FROM task_results r JOIN shop_jobs j ON j.id=r.shop_job_id WHERE j.run_id=%s AND r.endpoint='shopInfo' AND r.valid_data=TRUE ORDER BY r.observed_at,r.id",(run_id,))
-    latest={r['shop_job_id']:json.loads(zlib.decompress(r['response_blob'])) for r in rows}
+    latest={r['shop_job_id']:load_response(r['response_blob']) for r in rows}
     closed={job for job,response in latest.items() if shop_is_closed(response)}
     evidence=store.rows("SELECT DISTINCT t.shop_job_id FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s AND t.endpoint='productSpecifics' AND t.last_reason='store_closed'",(run_id,))
     closed.update(row['shop_job_id'] for row in evidence)

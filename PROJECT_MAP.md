@@ -4,7 +4,7 @@
 
 | 目录/入口 | 保留理由 |
 |---|---|
-| `farm/` | Web、账号状态、数据库/本地队列、导出、签名器、a7维护、代理适配与通用批次入口 |
+| `farm/` | Web、账号状态、统一任务队列/本机响应文件、导出、签名器、a7维护、代理适配与通用批次入口 |
 | `mtgsig/` + `keeta_a2.py` | 协议密码、原生状态模型与必需算法表 |
 | `keeta_rpc.py` + `rpc/` | 签名/加解密 HTTP 服务、发布包、验证与回滚 |
 | `keeta_login.py` / `keeta_offline_flow.py` / `mailbox.py` | 已有RPC兼容能力的实际依赖；不是主采集前置步骤 |
@@ -135,16 +135,14 @@ farm/account_profiles.py
 farm/batch_audit.py
 farm/batch_prepare.py
 farm/batch_report.py
-farm/batch_run.py
-farm/batch_watch.py
 farm/charles.py
 farm/env.py
 farm/executor.py
 farm/fingerprint_maintenance.py
 farm/fingerprint_refresh.py
 farm/fullsign.py
-farm/local_batch.py
-farm/local_ledger.py
+farm/local_files.py
+farm/response_files.py
 farm/mysql_admin.py
 farm/mysql_cli.py
 farm/mysql_export.py
@@ -234,9 +232,7 @@ scripts/check_account_signatures.sh
 scripts/check_proxy.sh
 scripts/check_staged.py
 scripts/python.sh
-scripts/set_local_proxy.sh
 scripts/smoke_services.py
-scripts/start_batch.sh
 scripts/start_panel.sh
 scripts/start_proxy.sh
 scripts/start_rpc.sh
@@ -267,8 +263,6 @@ tests/test_a9_rpc.py
 tests/test_account_check.py
 tests/test_account_checks.py
 tests/test_account_profiles.py
-tests/test_account_recovery.py
-tests/test_batch_workflow.py
 tests/test_bootstrap_identity.py
 tests/test_collection_refresh.py
 tests/test_corpse_codec.py
@@ -284,7 +278,6 @@ tests/test_fullsign.py
 tests/test_http_transport.py
 tests/test_incognia_state.py
 tests/test_incognia_token.py
-tests/test_local_batch.py
 tests/test_local_identity.py
 tests/test_login_context.py
 tests/test_login_execution.py
@@ -295,6 +288,7 @@ tests/test_mailbox.py
 tests/test_mysql_admin.py
 tests/test_mysql_farm.py
 tests/test_mysql_integration.py
+tests/test_local_response_files.py
 tests/test_newreg_signature.py
 tests/test_ntp_flow.py
 tests/test_ntp_protocol.py

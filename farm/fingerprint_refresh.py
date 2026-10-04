@@ -6,7 +6,8 @@ local usage ledgers and never clear quotas, cooldowns, or start collection.
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
-import sqlite3
+import fcntl
+from farm.local_files import atomic_json
 import time
 import uuid
 
@@ -28,50 +29,57 @@ def iso(timestamp_ms):
 
 
 class ReportJournal:
+    """Small file journal, locked across reserve/send/finish and process restarts."""
     def __init__(self, account_id, session_id, root=None):
         self.account_id = account_id
         self.session_id = session_id
         folder = Path(root or ROOT / '.private/account-checks/fingerprint-maintenance') / str(account_id)
         folder.mkdir(parents=True, exist_ok=True, mode=0o700)
-        manifest = folder / 'manifest.json'
-        if not manifest.exists():
-            manifest.write_text(compact({'account_ids': [account_id], 'account_session_ids': {},
-                                         'purpose': 'fingerprint_refresh'}))
-            manifest.chmod(0o600)
-        self.db = sqlite3.connect(folder / 'local.sqlite3', timeout=5)
-        (folder / 'local.sqlite3').chmod(0o600)
-        self.db.execute('''CREATE TABLE IF NOT EXISTS attempts(
-            id INTEGER PRIMARY KEY, account INTEGER, session_id INTEGER, endpoint TEXT,
-            started TEXT, finished TEXT, outcome TEXT, sent INTEGER DEFAULT 0,
-            http INTEGER, event_id TEXT UNIQUE, error_type TEXT)''')
-        self.db.commit()
+        self.path = folder / 'usage.json'
+        self.lock = (folder / 'usage.lock').open('a')
+        try:
+            fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.rows = json.loads(self.path.read_text()) if self.path.exists() else []
+            if not isinstance(self.rows, list):
+                raise ValueError('invalid_fingerprint_journal')
+        except BaseException:
+            self.lock.close()
+            raise
 
     def reserve(self, timestamp_ms):
         since = iso(timestamp_ms - 86400000)
-        # Persisted sliding cap across process restarts and active-session changes.
-        count = self.db.execute("SELECT COUNT(*) FROM attempts WHERE account=? AND started>=? AND (sent=1 OR outcome IN ('reserved','uncertain'))",
-                                (self.account_id, since)).fetchone()[0]
+        count = sum(r['account'] == self.account_id and r['started'] >= since
+                    and (r['sent'] or r['outcome'] in ('reserved', 'uncertain')) for r in self.rows)
         if count >= 96:
             raise FingerprintRefreshBlocked('fingerprint_daily_limit')
         event = uuid.uuid4().hex
-        with self.db:
-            self.db.execute("INSERT INTO attempts(account,session_id,endpoint,started,outcome,event_id) VALUES(?,?,'fingerprintInfo',?,'reserved',?)",
-                            (self.account_id, self.session_id, iso(timestamp_ms), event))
+        self.rows.append(dict(account=self.account_id, session_id=self.session_id,
+                              endpoint='fingerprintInfo', started=iso(timestamp_ms),
+                              finished=None, http=None, sent=0, outcome='reserved',
+                              event_id=event, error_type=None))
+        atomic_json(self.path, self.rows)
         return event
 
+    def _row(self, event):
+        rows = [r for r in self.rows if r['event_id'] == event]
+        if len(rows) != 1:
+            raise RuntimeError('fingerprint reservation missing')
+        return rows[0]
+
     def sent(self, event):
-        with self.db:
-            changed = self.db.execute("UPDATE attempts SET sent=1,outcome='uncertain' WHERE event_id=? AND outcome='reserved'", (event,))
-            if changed.rowcount != 1:
-                raise RuntimeError('fingerprint reservation missing')
+        row = self._row(event)
+        if row['outcome'] != 'reserved':
+            raise RuntimeError('fingerprint reservation missing')
+        row.update(sent=1, outcome='uncertain')
+        atomic_json(self.path, self.rows)
 
     def finish(self, event, timestamp_ms, status, outcome, error_type=None):
-        with self.db:
-            self.db.execute('UPDATE attempts SET finished=?,http=?,outcome=?,error_type=? WHERE event_id=?',
-                            (iso(timestamp_ms), status, outcome, error_type, event))
+        self._row(event).update(finished=iso(timestamp_ms), http=status,
+                                outcome=outcome, error_type=error_type)
+        atomic_json(self.path, self.rows)
 
     def close(self):
-        self.db.close()
+        self.lock.close()
 
 
 def ensure_fingerprint(signer, bundle, *, account_id, session_id, persist, send,

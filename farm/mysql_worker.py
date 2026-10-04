@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
-import zlib
+from farm.response_files import load_response, save_response
 from urllib.parse import urlsplit
 import time
 import uuid
@@ -84,9 +84,9 @@ class Worker:
             menus=[r for r in raw if r['endpoint']=='productList']
             if not menus:continue
             menu=menus[-1]
-            renders=[json.loads(zlib.decompress(r['response_blob'])) for r in raw if r['endpoint']=='productRender' and r['observed_at']>=menu['observed_at']]
-            details={r['target_id']:json.loads(zlib.decompress(r['response_blob'])) for r in raw if r['endpoint']=='productSpecifics'}
-            merged=merge_menu(json.loads(zlib.decompress(menu['response_blob']))['data'],renders)
+            renders=[load_response(r['response_blob']) for r in raw if r['endpoint']=='productRender' and r['observed_at']>=menu['observed_at']]
+            details={r['target_id']:load_response(r['response_blob']) for r in raw if r['endpoint']=='productSpecifics'}
+            merged=merge_menu(load_response(menu['response_blob'])['data'],renders)
             check=coverage(merged,details)
             missing=set(check['missing_main_ids'])
             detail_ids={k for k,v in details.items() if str(v.get('data',{}).get('spuId'))==k and v.get('data',{}).get('name') and not unresolved_nested(v['data'])}
@@ -103,21 +103,51 @@ class Worker:
                         stats['covered']+=c.rowcount
         return stats
 
+    def recorded_menu(self,c,job_id):
+        from farm.mysql_export import merge_menu
+        c.execute("SELECT endpoint,response_blob FROM task_results WHERE shop_job_id=%s AND endpoint IN ('productList','productRender') AND valid_data=TRUE ORDER BY observed_at,id",(job_id,))
+        menu=None;renders=[]
+        for row in c.fetchall():
+            value=load_response(row['response_blob'])
+            if row['endpoint']=='productList':menu=value['data'];renders=[]
+            else:renders.append(value)
+        return merge_menu(menu,renders) if menu else {'shopCategoryList':[]}
+
+    def reconcile_unavailable_details(self,c,task):
+        from farm.mysql_export import unavailable_products
+        if unpack_json(task.get('run_settings') or {}).get('skip_unavailable_details') is not True:return
+        menu=self.recorded_menu(c,task['shop_job_id'])
+        ids=unavailable_products(menu)
+        recorded={str(p['spuId']) for cat in menu['shopCategoryList'] for p in cat.get('spuList') or [] if p.get('name') and p.get('spuId') is not None}
+        reopened=recorded-ids
+        if reopened:
+            marks=','.join(['%s']*len(reopened))
+            c.execute(f"UPDATE tasks SET state=IF(attempts>=max_attempts,'dead_letter','pending'),last_reason='availability_changed',updated_at=%s WHERE shop_job_id=%s AND endpoint='productSpecifics' AND target_id IN ({marks}) AND state='skipped_unavailable' AND last_reason='product_unavailable_menu'",(utcnow(),task['shop_job_id'],*sorted(reopened)))
+        if not ids:return
+        marks=','.join(['%s']*len(ids))
+        c.execute(f"UPDATE tasks SET state='skipped_unavailable',last_reason='product_unavailable_menu',not_before=NULL,updated_at=%s WHERE shop_job_id=%s AND endpoint='productSpecifics' AND target_id IN ({marks}) AND state IN ('pending','retry_wait','deferred_business','dead_letter')",(utcnow(),task['shop_job_id'],*sorted(ids)))
+
+    def _skip_unavailable_details(self,c,task,response,outcome):
+        if (unpack_json(task.get('run_settings') or {}).get('skip_unavailable_details') is not True
+            or task['endpoint']!='productSpecifics' or outcome!='business_error'
+            or response.get('_http_status')!=200 or str(response.get('code'))!='201003212'):return False
+        from farm.mysql_export import coverage
+        return str(task['target_id']) in coverage(self.recorded_menu(c,task['shop_job_id']),{})['recorded_product_ids']
+
     def _skip_closed_details(self,c,task,response,outcome):
         settings=unpack_json(task.get('run_settings') or {})
         if settings.get('skip_closed_details') is not True:return False
         if outcome=='store_closed' or (task['endpoint']=='shopInfo' and shop_is_closed(response)):return True
         c.execute("SELECT response_blob FROM task_results WHERE shop_job_id=%s AND endpoint='shopInfo' AND valid_data=TRUE ORDER BY observed_at DESC,id DESC LIMIT 1",(task['shop_job_id'],))
         row=c.fetchone()
-        if row and shop_is_closed(json.loads(zlib.decompress(row['response_blob']))):return True
+        if row and shop_is_closed(load_response(row['response_blob'])):return True
         c.execute("SELECT id FROM tasks WHERE shop_job_id=%s AND endpoint='productSpecifics' AND last_reason='store_closed' LIMIT 1",(task['shop_job_id'],))
         return c.fetchone() is not None
 
     def diagnose(self,account_ids,endpoints,allow_probe=False,allow_recovery=False,*,allow_paused=False,force_probe=False):
         """Read-only per-endpoint blockers; no inference about server recovery."""
         if force_probe and not allow_probe:raise ValueError('manual probe scope required')
-        from farm.local_ledger import local_owners, local_daily_usage
-        now=utcnow();results=[];owners=local_owners();local_usage=local_daily_usage(business_day(now),account_ids)
+        now=utcnow();results=[]
         for aid in account_ids:
             rows=self.store.rows('SELECT a.paused,a.identity_status,s.* FROM accounts a JOIN account_sessions s ON s.id=a.active_session_id WHERE a.id=%s',(aid,))
             if not rows:
@@ -125,13 +155,11 @@ class Worker:
             row=rows[0];bundle=self.store.unseal(row)
             caps={r['endpoint']:r for r in self.store.rows('SELECT * FROM capabilities WHERE session_id=%s',(row['id'],))}
             budgets={r['endpoint']:r for r in self.store.rows('SELECT p.*,COALESCE(u.used_count,0)+COALESCE(u.reserved_count,0) used FROM budget_policies p LEFT JOIN daily_usage u ON u.account_id=p.account_id AND u.endpoint=p.endpoint AND u.business_date=%s WHERE p.account_id=%s',(business_day(now),aid))}
-            for ep,budget in budgets.items():budget['used']+=local_usage[(aid,ep)]
             rests=self.store.rows("SELECT * FROM experiment_members WHERE account_id=%s AND (state IN ('resting','stopped') OR rest_until>%s)",(aid,now))
             for endpoint in endpoints:
                 cap=caps.get(endpoint,{});budget=budgets.get(endpoint,{})
                 reason='eligible';until=cap.get('not_before')
-                if (aid,row['id']) in owners:reason='local_account_managed'
-                elif row['paused'] and not (allow_probe and allow_paused):reason='paused'
+                if row['paused'] and not (allow_probe and allow_paused):reason='paused'
                 elif not allow_probe and row['identity_status'] not in ('verified','observed','unverified'):reason='identity_expired'
                 elif endpoint not in unpack_json(row['endpoint_names']):
                     reason=bundle.get('material_reasons',{}).get(endpoint,'unsupported_or_missing_endpoint_schema')
@@ -180,7 +208,6 @@ class Worker:
 
     def claim(self,run_id,account_id=None,endpoints=None,allow_probe=False,*,environment=None,account_ids=None,tags=None,allow_recovery=False,task_id=None,allow_paused=False,force_probe=False):
         from farm.mysql_selection import selection_clause
-        from farm.local_ledger import local_owners, local_daily_usage
         now=utcnow();today=business_day(now)
         if task_id is not None and (type(task_id) is not int or task_id<1):raise ValueError('invalid task ID')
         if allow_paused and not (allow_probe and account_id is not None and task_id is not None):
@@ -197,11 +224,11 @@ class Worker:
         query+=selection;args.extend(selection_args)
         query+=' ORDER BY a.id'
         accounts=self.store.rows(query,args)
-        owners=local_owners();local_usage=local_daily_usage(today,[a['account_id'] for a in accounts])
+        last=getattr(self,'last_account_id',0)
+        accounts=sorted(accounts,key=lambda a:(a['account_id']<=last,a['account_id']))
         for account in accounts:
             if getattr(self,'fingerprint_wait_until',{}).get(account['account_id'],0)>time.time():continue
-            if (account['account_id'],account['id']) in owners:continue
-            con=self.store.connect();locks=[];claim=None
+            con=self.store.connect();locks=[];claim=None;gate=None
             try:
                 with con.cursor() as c:
                     c.execute('SET SESSION wait_timeout=300')
@@ -226,7 +253,14 @@ class Worker:
                         available.discard('productSpecifics')
                     c.execute('SELECT p.*,COALESCE(u.used_count,0) used_count,COALESCE(u.reserved_count,0) reserved_count FROM budget_policies p LEFT JOIN daily_usage u ON u.account_id=p.account_id AND u.endpoint=p.endpoint AND u.business_date=%s WHERE p.account_id=%s',(today,account['account_id']))
                     policies={r['endpoint']:r for r in c.fetchall()}
-                    for ep,policy in policies.items():policy['used_count']+=local_usage[(account['account_id'],ep)]
+                    if 'productSpecifics' in available:
+                        c.execute("SELECT MAX(finished_at) finished FROM request_attempts WHERE account_id=%s AND endpoint='productSpecifics' AND counts_budget=TRUE",(account['account_id'],))
+                        recent=c.fetchone()
+                        if recent and recent['finished']:
+                            wait=getattr(self,'detail_delay',4)-(now-recent['finished']).total_seconds()
+                            if wait>0:
+                                self.details_ready_at[account['account_id']]=time.monotonic()+wait
+                                available.discard('productSpecifics')
                     available={e for e in available if e in policies and policies[e]['used_count']+policies[e]['reserved_count']<(policies[e]['hard_limit'] if allow_probe else min(policies[e]['work_limit'],policies[e]['hard_limit']))}
                     c.execute("SELECT endpoint,state,rest_until,settings FROM experiment_members WHERE account_id=%s AND (state IN ('resting','stopped') OR rest_until>%s)",(account['account_id'],now))
                     for rest in c.fetchall():
@@ -245,15 +279,20 @@ class Worker:
                     ORDER BY j.id,t.priority DESC,t.id LIMIT 1 FOR UPDATE SKIP LOCKED''',(run_id,now,*sorted(available),*((task_id,) if task_id is not None else ())))
                     task=c.fetchone()
                     if task is None:continue
+                    gate=getattr(self,'route_gates',{}).get(account['account_id'])
+                    if gate is not None and not gate.acquire(blocking=False):gate=None;continue
                     endpoint=task['endpoint'];owner=str(uuid.uuid4());attempt_id=digest(['worker',owner,task['id']])
                     c.execute('INSERT INTO daily_usage(account_id,business_date,endpoint,reserved_count) VALUES(%s,%s,%s,1) ON DUPLICATE KEY UPDATE reserved_count=reserved_count+1',(account['account_id'],today,endpoint))
                     c.execute("UPDATE tasks SET state='leased',lease_owner=%s,lease_until=%s,updated_at=%s WHERE id=%s",(owner,now+timedelta(minutes=3),now,task['id']))
                     source='execution:'+str(self.execution_id) if getattr(self,'execution_id',None) is not None else 'mysql_worker'
                     c.execute(ATTEMPT_SQL,(attempt_id,account['account_id'],account['id'],task['id'],endpoint,'worker',now,None,today,'reserved',True,None,None,'reserved',False,None,task['shop_id'],task['target_id'] or None,source,account['collection_mode'],account['incognia_mode']))
                     con.commit();claim={'connection':con,'locks':locks,'account':account,'task':task,'owner':owner,'attempt_id':attempt_id,'business_date':today}
+                    if gate is not None:claim['route_gate']=gate
+                    self.last_account_id=account['account_id']
                     return claim
             finally:
                 if claim is None:
+                    if gate is not None:gate.release()
                     try:con.rollback()
                     except Exception as exc:log_failure('claim_rollback',exc)
                     self._release_locks(con,locks)
@@ -309,6 +348,7 @@ class Worker:
                 if outcome=='success':self.store.observe(c,a['id'],endpoint,'available',now,http,code,'mysql_worker')
                 for product in followups[0]:self.store.enqueue(c,t['shop_job_id'],'productSpecifics',product,priority=20)
                 for payload in followups[1]:self.store.enqueue(c,t['shop_job_id'],'productRender',digest(payload)[:24],payload,priority=10)
+                if endpoint in ('productList','productRender'):self.reconcile_unavailable_details(c,t)
                 if endpoint=='accountInfo':
                     c.execute("UPDATE accounts SET identity_status='verified',verified_at=%s WHERE id=%s",(now,a['account_id']))
                 else:
@@ -323,8 +363,10 @@ class Worker:
             if http==401 or code==401:
                 c.execute("UPDATE accounts SET identity_status='expired' WHERE id=%s",(a['account_id'],))
             skip_closed=self._skip_closed_details(c,t,response,outcome)
+            skip_unavailable=self._skip_unavailable_details(c,t,response,outcome)
             if valid and outcome=='success':state='succeeded';not_before=None
             elif skip_closed and endpoint=='productSpecifics' and outcome=='store_closed':state='skipped_closed';not_before=None
+            elif skip_unavailable:state='skipped_unavailable';not_before=None
             elif maintenance_wait:
                 state='retry_wait';not_before=datetime.fromtimestamp(response['_maintenance_retry_at'],timezone.utc).replace(tzinfo=None)
             elif not sent:state='retry_wait';not_before=now
@@ -338,7 +380,7 @@ class Worker:
                 state='dead_letter' if counter['attempts']>=counter['max_attempts'] else 'retry_wait'
                 not_before=now+timedelta(seconds=86400 if http==429 else 300)
             c.execute('UPDATE tasks SET state=%s,not_before=%s,last_reason=%s,lease_owner=NULL,lease_until=NULL,updated_at=%s WHERE id=%s',
-                      (state,not_before,outcome,now,t['id']))
+                      (state,not_before,'product_unavailable_response' if skip_unavailable else outcome,now,t['id']))
             if skip_closed:
                 c.execute("UPDATE tasks SET state='skipped_closed',not_before=NULL,last_reason='store_closed',updated_at=%s WHERE shop_job_id=%s AND endpoint='productSpecifics' AND state IN ('pending','retry_wait','deferred_business','dead_letter')",(now,t['shop_job_id']))
             elif outcome=='store_closed':
@@ -501,6 +543,7 @@ class Worker:
             return self.durable_finish(claim,error=type(exc).__name__,sent=sent)
         finally:
             self._release_locks(claim['connection'],claim['locks'])
+            if claim.get('route_gate') is not None:claim['route_gate'].release()
 
     def probe(self,account_id,endpoint,shop_job_id=None):
         if endpoint not in PATHS:raise ValueError('unknown endpoint')
@@ -509,7 +552,7 @@ class Worker:
             # when it came from a separate probe job. Do not reserve an HTTP
             # request or create a new probe job for a known closed shop.
             latest=self.store.rows("SELECT r.response_blob FROM shop_jobs source JOIN shop_jobs j ON j.shop_id=source.shop_id AND j.context_key=source.context_key JOIN task_results r ON r.shop_job_id=j.id WHERE source.id=%s AND r.endpoint='shopInfo' AND r.valid_data=TRUE ORDER BY r.observed_at DESC,r.id DESC LIMIT 1",(shop_job_id,))
-            if latest and shop_is_closed(json.loads(zlib.decompress(latest[0]['response_blob']))):
+            if latest and shop_is_closed(load_response(latest[0]['response_blob'])):
                 return {'account_id':account_id,'endpoint':endpoint,'shop_job_id':shop_job_id,
                         'status':'skipped_closed','reason':'store_closed','sent':False}
         refresh_account_material(self.store,account_id)

@@ -3,7 +3,7 @@
 本页描述当前已有账号的采集链。它不把新设备注册、邮箱登录或手机传感器采样视为已经自动完成的前置步骤。
 
 1. **导入与状态接续**：从JSON/curl解析账号身份、请求上下文、签名配置和采集快照。同一活动会话续导入时保留已推进的签名计数、真实上报状态与用量，不退回抓包时刻。新会话要按身份边界重新校验。
-2. **确定批次**：明确店铺、坐标、账号集合、出口、并发和输出位置。数据库队列由Web/CLI管理；本地批次当前仍须先准备manifest及加密账号快照，不能把仅存在的目录当成已经准备好的可运行任务。
+2. **确定批次**：明确店铺、坐标、账号集合、出口、并发和输出位置。统一队列由 Web/CLI 管理，MySQL 保存任务与请求元数据，本机文件保存响应。准备完成仍须明确启动。
 3. **领取任务**：先取得账号/安装的排他使用权，核对日额度、接口冷却、网络退避、批次停止状态及出口并发。为即将发送的请求持久化预留记录。普通接口无额外四秒等待；只有同账号再次请求定制详情才检查配置间隔。
 4. **维护a7**：显式启用且材料匹配时，在业务请求前检查有效期。到期通过同一出口调用 `/fingerprint/v1/info/report`，接受成功响应的 `data.result`，保存interval、有效期及真实b16事件。失败退避、未完成事件或未知有效期会明确阻塞；不无限刷新，不自动清冷却，也不替代登录token续期。
 5. **构造并签名**：按接口重建URL、query、headers和body，更新请求级时间与trace。会话值appsession/b7/a10不逐请求随机改变；a3与salt/profile配套。签名器推进b2、按原生规则续接b17/b18；根据缓存模式更新已知采样时钟，重新生成a5及a2。a2必须对应实际发送的method、canonical URL、body和完整payload。
@@ -13,15 +13,17 @@
 
 ## 不可售和闭店
 
-本地新建批次默认启用 `skip_unavailable_details`：有菜品名称及ID、菜单明确availableStatus=0时保留菜品并跳过定制；已有菜品的详情返回HTTP200/201003212时也记为 `skipped_unavailable`。未知状态、403和缺菜单不能据此豁免；后续菜单证据变为可售时撤销旧菜单跳过，不重置历史尝试次数。
+新建批次默认启用 `skip_unavailable_details`：有菜品名称及ID、菜单明确availableStatus=0时保留菜品并跳过定制；已有菜品的详情返回HTTP200/201003212时也记为 `skipped_unavailable`。未知状态、403和缺菜单不能据此豁免；后续菜单证据变为可售时撤销旧菜单跳过，不重置历史尝试次数。
 
-闭店策略只跳过定制详情，菜单覆盖仍要求完成。闭店与不可售分别统计，不写成网络成功。当前不可售规则已接入本地队列；数据库worker尚未统一该规则，后续应抽取共用策略，不能误称两条执行链完全一致。
+闭店策略只跳过定制详情，菜单覆盖仍要求完成。闭店与不可售分别统计，不写成网络成功。不可售规则已统一接入当前 Worker 与导出验收，旧 SQLite 调度链已移除。
 
 ## 当前实现入口
 
-`farm/local_batch.py` 是正式本地队列，可用 `python -m farm.local_batch <prepared-folder>` 运行已准备批次；新项目使用 `farm.batch_prepare` 准备，`farm.batch_watch` 启动并监督，不依赖旧私有入口。`farm/mysql_worker.py` / `farm/mysql_service.py` 是数据库执行链，`farm/fullsign.py` 与 `mtgsig/` 是共享签名实现，`farm/fingerprint_refresh.py`负责网络上报与持久化维护。
+`farm/mysql_worker.py` / `farm/mysql_service.py` 是唯一采集执行链，`farm/fullsign.py` 与 `mtgsig/` 是共享签名实现，`farm/fingerprint_refresh.py` 负责上报及本机维护计数。通过 `scripts/start_worker.sh` 启动；`farm.batch_prepare` 只准备任务，面板明确排队后才采集。
 
-本地队列支持断点恢复，但人工STOP或403保护不能靠重启绕过。`farm.batch_prepare`、`farm.recommendations`、`farm.batch_audit` 已提供通用参数入口；准备不发业务请求，推荐发现须显式执行，验收读取实际账本和交付文件。
+响应体及失败诊断写 `.private/responses/`，SQL 只存哈希引用。响应先写私有恢复日志后提交 SQL；重启只重放提交，不重发已保存的响应。a7 小型计数 JSON 通过文件锁和原子写持久化，不使用 SQLite。
+
+ZIP 默认只包含 Excel；长字段分片保存在同一工作簿的“长字段内容”工作表，原表单元格保留引用与 SHA256。覆盖报告和排错日志留本机，不混入交付包。
 
 ## 已验证的运行基线
 

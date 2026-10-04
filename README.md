@@ -4,7 +4,7 @@
 
 ## 安装
 
-Python 3.9+，MySQL 8；本地采集任务使用 SQLite。建议新部署采用仍受支持的 Python 版本。Mihomo / GOST 3 按实际代理方式另行安装；常规离线采集无需 Frida 或手机常驻。
+Python 3.9+，MySQL 8 管理账号、用量与任务，响应体只保存在本机文件；运行链不使用 SQLite。建议新部署采用仍受支持的 Python 版本。Mihomo / GOST 3 按实际代理方式另行安装；常规离线采集无需 Frida 或手机常驻。
 
 ```bash
 python3 -m venv .venv
@@ -18,7 +18,7 @@ chmod 600 .private/mysql.json
 ./scripts/start_panel.sh --no-worker --port 8788
 ```
 
-面板绑定 `127.0.0.1`。`--no-worker` 只开管理端；MySQL 队列另开 `./scripts/start_worker.sh`。本地批次独立运行，业务结果只落本地，账号来源和控制仍依赖 MySQL。新环境需要导入自己的账号材料和配置出口。
+面板绑定 `127.0.0.1`。`--no-worker` 只开管理端；MySQL 队列另开 `./scripts/start_worker.sh`。全部批次使用同一个 Worker，业务响应只落本机，数据库仅保存状态和哈希引用。新环境需要导入自己的账号材料和配置出口。
 
 ## 入口
 
@@ -27,9 +27,8 @@ chmod 600 .private/mysql.json
 | Web 后台 | `scripts/start_panel.sh` |
 | MySQL 队列 Worker | `scripts/start_worker.sh` |
 | 本地批次准备 | `python -m farm.batch_prepare --help` |
-| 本地采集与退出监督 | `scripts/start_batch.sh <prepared-folder>` |
 | 推荐营业候选店铺 | `python -m farm.recommendations --help` |
-| 交付验收与计时 | `python -m farm.batch_audit <folder>` / `farm.batch_report` |
+| 交付验收与计时 | `python -m farm.batch_audit <output-folder>` / `farm.batch_report RUN_ID` |
 | 签名 / 加解密 RPC | `scripts/start_rpc.sh --port 8799` |
 | 独立代理核心 | `scripts/start_proxy.sh --help` |
 | 链式代理 | `python -m tools.proxy_chain_bridge --help` |
@@ -50,6 +49,6 @@ chmod 600 .private/mysql.json
 
 ## 数据与历史
 
-`.private/` 保存数据库配置、密钥、账号账本和代理配置；`exports/` 保存交付。它们必须单独备份，不能提交。切换运行目录时要保留原额度、冷却、a7 和计数，不能只复制账号 JSON 后清零启动。迁移步骤见运行指南。
+`.private/` 保存数据库配置、密钥、响应文件、a7 使用日志和代理配置；`exports/` 保存交付。ZIP 默认只有 Excel；超长子菜字段保存在同一表的附加工作表。它们必须单独备份，不能提交。切换运行目录时要保留原额度、冷却、a7 和计数，不能只复制账号 JSON 后清零启动。迁移步骤见运行指南。
 
 原研究与被替代文档留在旧仓库 `keeta-device` 的 `codex/keeta-project` 分支。这里仅保留当前指南、关键原生证据和必要算法笔记，不继承旧 Git 历史或独立暂存区发布机制。

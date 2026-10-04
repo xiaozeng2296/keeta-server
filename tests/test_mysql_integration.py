@@ -17,7 +17,9 @@ from mtgsig.mtg_crypto import fingerprint_encrypt
 @unittest.skipUnless(os.environ.get('KEETA_MYSQL_TESTS')=='1','explicit MySQL integration switch required')
 class MysqlIntegrationTests(unittest.TestCase):
     def setUp(self):
-        self.store=Store();self.tag='validation-'+str(uuid.uuid4());self.aid=None;self.rid=None;self.extra_runs=[]
+        self.store=Store(os.environ['KEETA_MYSQL_TEST_CONFIG']);self.tag='validation-'+str(uuid.uuid4());self.aid=None;self.rid=None;self.extra_runs=[]
+        if not self.store.config.get('test_database') or not self.store.config['database'].startswith('keeta_test_'):
+            raise RuntimeError('isolated test database required')
         user_id=str(uuid.uuid4().int)
         dev=identity();headers={'host':'example.test','token':self.tag,'userid':user_id,'uuid':'0'*64,'csecuuid':'0'*64,'region':'BR','incog-token':'TEST-CAPTURED'}
         url='https://example.test/api/v1/shop/productList?userid='+user_id
@@ -483,3 +485,44 @@ class MysqlIntegrationTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+@unittest.skipUnless(os.environ.get('KEETA_MYSQL_TESTS')=='1','explicit isolated MySQL integration switch required')
+class LocalStorageWorkflowTests(unittest.TestCase):
+    setUp=MysqlIntegrationTests.setUp
+    tearDown=MysqlIntegrationTests.tearDown
+
+    def test_unavailable_product_is_recorded_without_detail_http_and_reopens_with_new_evidence(self):
+        from farm.response_files import MAGIC,load_response
+        with self.store.transaction() as c:
+            c.execute('UPDATE collection_runs SET settings=%s WHERE id=%s',(compact({'skip_unavailable_details':True}),self.rid))
+        self.claim=self.worker.claim(self.rid,self.aid)
+        self.worker.mark_sent(self.claim)
+        reply={'_http_status':200,'code':0,'data':{'shopCategoryList':[{'shopCategoryId':1,'spuList':[{'spuId':7,'name':'Later','haveMultiSpecs':1,'availableStatus':0}]}]}}
+        result=self.worker.finish(self.claim,reply)
+        self.assertEqual(result['outcome'],'success')
+        task=self.store.rows("SELECT state,attempts FROM tasks WHERE shop_job_id=%s AND endpoint='productSpecifics'",(self.job,))[0]
+        self.assertEqual(task,dict(state='skipped_unavailable',attempts=0))
+        saved=self.store.rows('SELECT response_blob FROM task_results WHERE shop_job_id=%s',(self.job,))[0]['response_blob']
+        self.assertTrue(saved.startswith(MAGIC));self.assertEqual(load_response(saved),reply)
+        reply['data']['shopCategoryList'][0]['spuList'][0]['availableStatus']=1
+        with self.store.transaction() as c:
+            self.store.result(c,self.job,self.aid,'productList',reply,utcnow())
+            self.worker.reconcile_unavailable_details(c,self.claim['task'])
+        self.assertEqual(self.store.rows("SELECT state FROM tasks WHERE shop_job_id=%s AND endpoint='productSpecifics'",(self.job,))[0]['state'],'pending')
+
+    def test_opening_gate_only_releases_menus_for_all_confirmed_open_shops(self):
+        from farm.mysql_service import ExecutionManager
+        with self.store.transaction() as c:
+            c.execute('UPDATE collection_runs SET settings=%s WHERE id=%s',(compact({'verify_open':True}),self.rid))
+            c.execute("UPDATE tasks SET state='selection_hold' WHERE shop_job_id=%s",(self.job,))
+            self.store.enqueue(c,self.job,'shopInfo')
+        manager=ExecutionManager(self.store)
+        self.assertEqual(manager.release_opening_selection(self.rid),'pending')
+        with self.store.transaction() as c:
+            c.execute("UPDATE tasks SET state='succeeded' WHERE shop_job_id=%s AND endpoint='shopInfo'",(self.job,))
+            self.store.result(c,self.job,self.aid,'shopInfo',{'code':0,'data':{'name':'Shop','status':4}},utcnow())
+        self.assertEqual(manager.release_opening_selection(self.rid),'not_open')
+        with self.store.transaction() as c:
+            self.store.result(c,self.job,self.aid,'shopInfo',{'code':0,'data':{'name':'Shop','status':3}},utcnow())
+        self.assertEqual(manager.release_opening_selection(self.rid),'released')
+        self.assertEqual(self.store.rows("SELECT state FROM tasks WHERE shop_job_id=%s AND endpoint='productList'",(self.job,))[0]['state'],'pending')

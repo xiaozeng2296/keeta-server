@@ -6,30 +6,7 @@ import time
 import uuid
 
 from farm import account_checks as checks
-from farm.local_ledger import local_owner, daily_rows, LedgerUnavailable
 from farm.mysql_store import ENDPOINTS, business_day, utcnow, unpack_json, close_connection
-
-
-def clear_local_cooldown(runtime, aid, endpoint, *, verified=False):
-    account=runtime.accounts[aid]
-    before=account.get('blocked',{}).get(endpoint,0)
-    event=dict(endpoint=endpoint,observed_at=datetime.now(timezone.utc).isoformat(),
-               state='available' if verified else 'unknown',
-               action='verified_probe' if verified else 'manual_clear')
-    with runtime.db:
-        account.setdefault('blocked',{}).pop(endpoint,None)
-        # A quota rest or an unrelated rejected endpoint must remain in force.
-        detail_budget=account.get('budgets',{}).get('productSpecifics',{})
-        legacy_rejected=(not account.get('rest_reason') and before>0 and account.get('rest_until')==before
-                         and detail_budget.get('used',0)<detail_budget.get('limit',0))
-        if (account.get('rest_reason')=='rejected' and account.get('rest_endpoint')==endpoint) or legacy_rejected:
-            account['rest_until']=0;account.pop('rest_reason',None);account.pop('rest_endpoint',None)
-        account.setdefault('endpoint_controls',{})[endpoint]=event
-        audit=runtime.meta('cooldown_audit',[])
-        audit.append(dict(event,account_id=aid,previous_until=before))
-        runtime.set_meta('cooldown_audit',audit)
-        runtime.save_account(account)
-    return True
 
 
 @contextmanager
@@ -47,7 +24,6 @@ def database_control_lock(store, aid, sid):
             c.execute('SELECT active_session_id FROM accounts WHERE id=%s FOR UPDATE',(aid,))
             active=c.fetchone()
             if not active or active['active_session_id']!=sid:raise checks.CheckError('active_session_changed')
-            if local_owner(aid,sid):raise checks.CheckError('local_account_managed')
             yield c
         con.commit()
     except BaseException:
@@ -94,66 +70,38 @@ def active_session(store, aid):
 
 def clear_cooldown(store, aid, endpoint):
     if endpoint not in ENDPOINTS:raise ValueError('endpoint')
-    sid=active_session(store,aid);folder=local_owner(aid,sid)
-    if folder:
-        with checks.local_lock(folder) as local:
-            if active_session(store,aid)!=sid:raise checks.CheckError('active_session_changed')
-            if local.meta('probe_inflight'):raise checks.CheckError('unfinished_probe_requires_reconciliation')
-            clear_local_cooldown(local,aid,endpoint)
-    else:clear_database_cooldown(store,aid,endpoint,session_id=sid)
+    clear_database_cooldown(store,aid,endpoint,session_id=active_session(store,aid))
     return dict(account_id=aid,endpoint=endpoint,status='cooldown_cleared',state='unknown',
-                source='local' if folder else 'database',quota_preserved=True,collection_started=False)
-
-
-def reconcile_probe_budget(store, local, aid):
-    day=str(business_day(utcnow()))
-    with local.db:local.renew_daily_budgets(time.time())
-    rows,unreadable=daily_rows(day,{aid})
-    if unreadable:raise LedgerUnavailable('local_ledger_unreadable')
-    local_used={ep:sum(r['request_count']+r['reserved_count'] for r in rows if r['endpoint']==ep) for ep in ENDPOINTS}
-    policies=store.rows('''SELECT p.*,COALESCE(u.used_count,0)+COALESCE(u.reserved_count,0) used
-        FROM budget_policies p LEFT JOIN daily_usage u ON u.account_id=p.account_id
-        AND u.endpoint=p.endpoint AND u.business_date=%s WHERE p.account_id=%s''',(day,aid))
-    account=local.accounts[aid];limits={ep:0 for ep in ENDPOINTS}
-    for policy in policies:
-        ep=policy['endpoint'];limits[ep]=int(policy['hard_limit'])
-        budget=account['budgets'].setdefault(ep,{'used':0,'limit':int(policy['work_limit'])})
-        budget['used']=max(budget['used'],int(policy['used'])+local_used.get(ep,0))
-        budget['limit']=min(budget['limit'],int(policy['work_limit']),limits[ep])
-    with local.db:local.save_account(account)
-    return limits
+                source='database',quota_preserved=True,collection_started=False)
 
 
 def probe_account(store, aid, endpoint, shop_job_id=None, shop_id=None):
     if endpoint not in (*ENDPOINTS,'shopFlow'):raise ValueError('endpoint')
-    sid=active_session(store,aid);folder=local_owner(aid,sid)
+    sid=active_session(store,aid)
     output=checks.ROOT/'exports'/('account-check-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8])
-    with checks.local_lock(folder) as local:
-        bundle,source=checks.load_account(store,local,aid)
-        if shop_job_id:
-            rows=store.rows('SELECT shop_id,latitude,longitude,city_id FROM shop_jobs WHERE id=%s',(int(shop_job_id),))
-            if not rows:raise checks.CheckError('shop_not_found')
-            shop=rows[0]
-        elif endpoint in ('accountInfo','homeShopList'):
-            shop={'shop_id':'0','latitude':'-23.5489841','longitude':'-46.6332165','city_id':'102302389'}
-        else:shop=checks.select_shop(store,local,shop_id)
-        if active_session(store,aid)!=sid:raise checks.CheckError('active_session_changed')
-        limits=reconcile_probe_budget(store,local,aid) if source=='local' else None
-        output.mkdir(parents=True,mode=0o700)
-        checker=(checks.LocalProbe(local,aid,shop,output,recovery=True,hard_limits=limits) if source=='local'
-                 else checks.DatabaseProbe(store,aid,shop,recovery=True))
-        complete=False
-        try:
-            if endpoint in ('shopFlow','productRender','productSpecifics'):
-                results=checks.check_flow(checker.send,stop_after=endpoint)
-            else:
-                target=str(bundle['identity']['userid']) if endpoint=='accountInfo' else ''
-                row,response=checker.send(endpoint,{},target);results=[dict(row,endpoint=endpoint)]
-            complete=True
-            if endpoint=='accountInfo' and row['status']=='success':
-                from farm.account_profiles import remember_profile
-                remember_profile(aid,sid,target,response)
-        finally:checker.close(complete)
+    bundle,source=checks.load_account(store,aid)
+    if shop_job_id:
+        rows=store.rows('SELECT shop_id,latitude,longitude,city_id FROM shop_jobs WHERE id=%s',(int(shop_job_id),))
+        if not rows:raise checks.CheckError('shop_not_found')
+        shop=rows[0]
+    elif endpoint in ('accountInfo','homeShopList'):
+        shop={'shop_id':'0','latitude':'-23.5489841','longitude':'-46.6332165','city_id':'102302389'}
+    else:shop=checks.select_shop(store,shop_id)
+    if active_session(store,aid)!=sid:raise checks.CheckError('active_session_changed')
+    output.mkdir(parents=True,mode=0o700)
+    checker=checks.DatabaseProbe(store,aid,shop,recovery=True)
+    complete=False
+    try:
+        if endpoint in ('shopFlow','productRender','productSpecifics'):
+            results=checks.check_flow(checker.send,stop_after=endpoint)
+        else:
+            target=str(bundle['identity']['userid']) if endpoint=='accountInfo' else ''
+            row,response=checker.send(endpoint,{},target);results=[dict(row,endpoint=endpoint)]
+        complete=True
+        if endpoint=='accountInfo' and row['status']=='success':
+            from farm.account_profiles import remember_profile
+            remember_profile(aid,sid,target,response)
+    finally:checker.close(complete)
     result=dict(account_id=aid,source=source,results=results,sent=sum(bool(r.get('sent')) for r in results),
                 verified=[r['endpoint'] for r in results if r['status']=='success'],
                 cooldown_cleared=[r['endpoint'] for r in results if r.get('cooldown_cleared')],quota_preserved=True)

@@ -2,7 +2,6 @@
 from copy import deepcopy
 import json
 from pathlib import Path
-import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -114,8 +113,8 @@ class FingerprintRefreshTests(unittest.TestCase):
             result=ensure_fingerprint(s,b,**kw);self.assertEqual(result['status'],'refreshed')
             restored=FullSigner(saved[-1]);kw['clock']=lambda:(NOW+10)/1000
             self.assertEqual(ensure_fingerprint(restored,b,**kw)['status'],'fresh');self.assertEqual(len(requests),1)
-            with sqlite3.connect(Path(tmp)/'44/local.sqlite3') as db:
-                self.assertEqual(db.execute('SELECT endpoint,sent,outcome FROM attempts').fetchall(),[('fingerprintInfo',1,'success')])
+            rows=json.loads((Path(tmp)/'44/usage.json').read_text())
+            self.assertEqual([(r['endpoint'],r['sent'],r['outcome']) for r in rows],[('fingerprintInfo',1,'success')])
 
     def test_network_failure_preserves_a7_and_accounts_attempt(self):
         b=bundle();s=FullSigner(b['device']);old=s.a7
@@ -124,8 +123,8 @@ class FingerprintRefreshTests(unittest.TestCase):
             with self.assertRaises(TimeoutError):
                 ensure_fingerprint(s,b,account_id=44,session_id=68,persist=lambda _:None,send=send,journal_root=tmp,clock=lambda:NOW/1000)
             self.assertEqual(s.a7,old);self.assertEqual(refresh_status(s.dev,NOW+100),'backoff')
-            with sqlite3.connect(Path(tmp)/'44/local.sqlite3') as db:
-                self.assertEqual(db.execute('SELECT sent,outcome FROM attempts').fetchall(),[(1,'transport_error')])
+            rows=json.loads((Path(tmp)/'44/usage.json').read_text())
+            self.assertEqual([(r['sent'],r['outcome']) for r in rows],[(1,'transport_error')])
 
     def test_persist_failure_never_dispatches(self):
         b=bundle();s=FullSigner(b['device']);sent=[]
@@ -184,38 +183,6 @@ class WorkerRefreshIntegrationTests(unittest.TestCase):
         self.assertEqual(w.durable_finish.call_args.kwargs['error'],'FingerprintRefreshBlocked')
         self.assertIn(44,w.fingerprint_wait_until)
 
-    def test_local_refresh_and_reload_and_rejected_report_keeps_task_budget(self):
-        import io
-        from contextlib import redirect_stdout
-        from tests.test_account_checks import helpers
-        for report_status in (200,403):
-            with tempfile.TemporaryDirectory() as tmp:
-                root=Path(tmp);r=helpers.LocalTests().setup_run(root,shops=1,account_count=1)
-                try:
-                    a=r.accounts[1];a['session_id']=68;a['bundle']['device']=bundle()['device']
-                    a['bundle']['request']['headers'].update(region='BR',cityid='102',appid='517',userid=str(a['bundle']['identity']['userid']))
-                    r.signers[1]=FullSigner(a['bundle']['device']);before=deepcopy(a['blocked']);sent=[]
-                    def transport(_session,wire,**kwargs):
-                        sent.append(wire.url)
-                        if PATH in wire.url:return Reply(status=report_status)
-                        saved=r.vault.open(r.db.execute('SELECT blob FROM accounts WHERE id=1').fetchone()[0])
-                        self.assertEqual(json.loads(wire.headers['mtgsig'])['a7'],'server-XID')
-                        self.assertEqual(saved['bundle']['device']['a7'],'server-XID')
-                        return Reply(body={'code':0,'data':{'shopId':'1','name':'shop','status':1}})
-                    claim=r.pick(0)
-                    with patch('farm.fingerprint_refresh.ROOT',root),patch('requests.Session.send',transport):result=r.send(*claim)
-                    with redirect_stdout(io.StringIO()):r.finish(*claim,*result)
-                    self.assertEqual(a['blocked'],before)
-                    if report_status==200:
-                        self.assertEqual(len(sent),2);self.assertEqual(a['budgets']['shopInfo']['used'],1)
-                        restored=FullSigner(a['bundle']['device']);self.assertEqual(restored.a7,'server-XID')
-                    else:
-                        self.assertEqual(len(sent),1);self.assertEqual(a['budgets']['shopInfo']['used'],0)
-                        row=r.db.execute("SELECT attempts,state,reason FROM tasks WHERE endpoint='shopInfo'").fetchone()
-                        self.assertEqual(tuple(row),(0,'retry_wait','maintenance_wait'))
-                        self.assertIsNone(r.pick(0))
-                        self.assertEqual(r.waiting()['reason'],'fingerprint_refresh')
-                finally:r.db.close()
 
 
 if __name__ == '__main__':unittest.main()

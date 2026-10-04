@@ -24,7 +24,7 @@ def main():
     from rpc.deploy import RUNTIME_FILES
     for path in RUNTIME_FILES:
         if not (ROOT/path).is_file():errors.append('RPC package missing '+path)
-    for module in ('farm.panel','farm.local_batch','farm.batch_prepare','farm.batch_run','farm.batch_watch','farm.recommendations','farm.batch_audit','farm.batch_report','farm.executor','farm.proxy_service','keeta_rpc'):
+    for module in ('farm.panel','farm.batch_prepare','farm.recommendations','farm.batch_audit','farm.batch_report','farm.executor','farm.proxy_service','keeta_rpc'):
         __import__(module)
     for error in errors:print(error)
     if errors:return 1

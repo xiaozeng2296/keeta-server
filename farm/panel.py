@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 import re
 import secrets
-import sqlite3
 import tempfile
 import threading
 import time
@@ -29,7 +28,6 @@ from farm.mysql_import import split_curls
 from farm.mysql_admin import DeletionConflict, delete_accounts, delete_runs
 from farm.account_controls import probe_account, clear_cooldown
 from farm.account_checks import CheckError
-from farm.local_ledger import overlay_dashboard, LedgerUnavailable, journal_folders, read_manifest
 
 
 class StateCache:
@@ -122,61 +120,10 @@ def local_run_summary(identifier):
 
 def local_run_detail(identifier):
     summary=local_run_summary(identifier);folder,_,_=local_run_files(identifier)
-    database=folder/'local.sqlite3'
-    if database.is_symlink():raise ValueError('local database path')
-    with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1)) as db:
-        db.row_factory=sqlite3.Row
-        db.execute('PRAGMA query_only=ON')
-        shops=[];lookup={}
-        counts={}
-        for row in db.execute('SELECT shop,endpoint,state,COUNT(*) count FROM tasks GROUP BY shop,endpoint,state'):
-            counts.setdefault(row['shop'],{}).setdefault(row['endpoint'],{})[row['state']]=row['count']
-        for row in db.execute('SELECT id,data,closed FROM shops ORDER BY id'):
-            data=json.loads(row['data']);lookup[row['id']]=str(data.get('shop_id',''))
-            shops.append(dict(shop_id=lookup[row['id']],name=data.get('shop_name',''),closed=bool(row['closed']),tasks=counts.get(row['id'],{})))
-        logs=[]
-        for row in db.execute("""SELECT a.id,a.account,a.endpoint,a.started,a.finished,a.http,a.code,a.outcome,a.sent,t.shop,t.target
-            FROM attempts a JOIN tasks t ON t.id=a.task ORDER BY a.id DESC LIMIT 100"""):
-            logs.append(dict(attempt=row['id'],account_id=row['account'],endpoint=row['endpoint'],
-                             at=row['finished'] or row['started'],http=row['http'],code=row['code'],outcome=row['outcome'],
-                             sent=bool(row['sent']),shop_id=lookup.get(row['shop'],''),target=row['target']))
-    return dict(summary=summary,shops=shops,requests=logs)
-
-
-def local_account_observations():
-    """Read evidence without changing account material, budgets or scheduler capabilities."""
-    latest={}
-    def keep(aid,sid,endpoint,http,outcome,at,source,patched=False):
-        if not at or not aid or not sid:return
-        if endpoint not in ENDPOINTS:return
-        observed=when(at);key=(int(aid),int(sid),endpoint)
-        if key in latest and when(latest[key]['observed_at'])>=observed:return
-        latest[key]=dict(account_id=int(aid),session_id=int(sid),endpoint=endpoint,http=http,
-                         state='available' if outcome=='success' else 'rejected' if http in (401,403,429) else 'unknown',
-                         outcome=outcome,observed_at=observed.isoformat()+'Z',source=source,render_b16_override=bool(patched))
-    report=LOCAL_RUN_ROOT/'all-accounts-b16-render-20261003'/'report.corrected.json'
-    if report.is_file():
-        try:
-            data=json.loads(report.read_text())
-            for row in data['results']:
-                keep(row['account_id'],row['session_id'],'productRender',row.get('http'),
-                     'success' if row.get('valid_data') else row.get('outcome'),data['finished_at_utc'],
-                     'local_render_diagnostic',row.get('patch_applied'))
-        except (OSError,ValueError,KeyError,TypeError):pass
-    for folder in journal_folders():
-        try:
-            manifest=read_manifest(folder);sessions=manifest.get('account_session_ids',{})
-            database=folder/'local.sqlite3'
-            if not sessions or not database.is_file() or database.is_symlink():continue
-            with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1)) as db:
-                db.row_factory=sqlite3.Row;db.execute('PRAGMA query_only=ON')
-                for row in db.execute("""SELECT a.account,a.endpoint,a.http,a.outcome,a.finished FROM attempts a JOIN
-                    (SELECT account,endpoint,MAX(id) id FROM attempts WHERE sent=1 AND finished IS NOT NULL GROUP BY account,endpoint) latest
-                    ON a.id=latest.id"""):
-                    keep(row['account'],sessions.get(str(row['account'])),row['endpoint'],row['http'],row['outcome'],row['finished'],
-                         'local_batch' if re.fullmatch(LOCAL_RUN_PATTERN,folder.name) else 'local_probe')
-        except (OSError,ValueError,KeyError,TypeError,sqlite3.Error):continue
-    return list(latest.values())
+    path=folder/'history.json'
+    if path.is_symlink():raise ValueError('invalid history path')
+    data=json.loads(path.read_text())
+    return dict(summary=summary,shops=data['shops'],requests=data['requests'][-100:])
 
 
 def create_app(store=None, start_worker=False):
@@ -210,7 +157,7 @@ def create_app(store=None, start_worker=False):
     def error(exc):
         # Exceptions may contain a DSN, a captured request, or a token-bearing URL.
         if isinstance(exc,DeletionConflict):return jsonify(error=str(exc),error_type='DeletionConflict'),409
-        if isinstance(exc,(CheckError,LedgerUnavailable)):return jsonify(error=str(exc),status=str(exc),sent=False),409
+        if isinstance(exc,CheckError):return jsonify(error=str(exc),status=str(exc),sent=False),409
         if isinstance(exc,HTTPException):return jsonify(error=exc.name),exc.code
         if isinstance(exc,ValueError):return jsonify(error='输入或材料校验失败，请检查文件格式和筛选条件',error_type='ValueError'),400
         return jsonify(error='操作失败，请检查数据库连接或运行状态',error_type=type(exc).__name__),500
@@ -268,12 +215,25 @@ def create_app(store=None, start_worker=False):
                 bindings=reader.get_setting('clash_node_bindings') or {}
                 for account in accounts:account['proxy_node']=bindings.get(str(account['id']))
                 data.update(accounts=accounts,daily=daily,budgets=budgets,capabilities=capabilities)
+                rests=reader.rows("SELECT account_id,endpoint,state,rest_until,settings FROM experiment_members WHERE rest_until>%s OR state='stopped'",(utcnow(),))
+                controls={}
+                for rest in rests:
+                    settings=unpack_json(rest['settings'])
+                    endpoints=ENDPOINTS if settings.get('rest_scope')=='all_account_requests' else (rest['endpoint'],)
+                    for endpoint in endpoints:
+                        key=(rest['account_id'],endpoint)
+                        previous=controls.get(key)
+                        if previous and previous['rest_until'] and rest['rest_until'] and previous['rest_until']>=rest['rest_until']:continue
+                        cap=next((c for c in capabilities if c['account_id']==rest['account_id'] and c['endpoint']==endpoint),{})
+                        controls[key]=dict(account_id=rest['account_id'],endpoint=endpoint,rest_until=rest['rest_until'],
+                                           rest_reason=settings.get('stop_reason'),cooldown_until=cap.get('not_before'))
+                data['account_controls']=list(controls.values())
             if scope in ('all','batches'):
                 runs=reader.rows('''SELECT r.*,COALESCE(j.shops,0) shops,COALESCE(t.total,0) total,
             COALESCE(t.succeeded,0) succeeded,COALESCE(t.skipped,0) skipped,COALESCE(t.covered,0) covered,COALESCE(t.failed,0) failed,COALESCE(t.leased,0) leased
             FROM collection_runs r
             LEFT JOIN (SELECT run_id,COUNT(*) shops FROM shop_jobs GROUP BY run_id) j ON j.run_id=r.id
-            LEFT JOIN (SELECT j.run_id,COUNT(*) total,SUM(t.state='succeeded') succeeded,SUM(t.state='skipped_closed') skipped,SUM(t.state='covered_by_details') covered,
+            LEFT JOIN (SELECT j.run_id,COUNT(*) total,SUM(t.state='succeeded') succeeded,SUM(t.state IN ('skipped_closed','skipped_unavailable')) skipped,SUM(t.state='covered_by_details') covered,
             SUM(t.state='dead_letter') failed,SUM(t.state='leased') leased
             FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id GROUP BY j.run_id) t ON t.run_id=r.id ORDER BY r.id DESC''')
                 executions=reader.rows('SELECT * FROM executions ORDER BY id DESC LIMIT 30')
@@ -292,8 +252,12 @@ def create_app(store=None, start_worker=False):
             if isinstance(value,Decimal):return int(value)
             return value
         if scope in ('all','accounts'):
-            data['local_observations']=local_account_observations()
-            overlay_dashboard(data,day)
+            data['local_observations']=[]
+            data['statistics_sources']={'database':True,'local':False,'unreadable':[]}
+            for budget in data['budgets']:
+                used=int(budget['used_count'])+int(budget['reserved_count'])
+                budget['remaining_work']=max(0,min(budget['work_limit'],budget['hard_limit'])-used)
+                budget['remaining_hard']=max(0,budget['hard_limit']-used)
             from farm.account_profiles import overlay_profiles
             overlay_profiles(data['accounts'])
         data.update(business_date=day,timezone='America/Sao_Paulo',server_time=utcnow(),scope=scope)
@@ -441,7 +405,7 @@ def create_app(store=None, start_worker=False):
         results=[]
         for account in selected:
             try:result=probe_account(store,account['id'],'accountInfo')
-            except (CheckError,LedgerUnavailable) as exc:
+            except CheckError as exc:
                 result={'status':str(exc),'sent':False}
             except (ValueError,KeyError,TypeError) as exc:
                 result={'status':'local_construction_error','sent':False,'error_type':type(exc).__name__}

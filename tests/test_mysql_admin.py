@@ -536,36 +536,7 @@ class DatabaseRecoveryTests(unittest.TestCase):
 
 
 class LocalPanelTests(unittest.TestCase):
-    def test_local_observations_keep_sessions_separate_and_prefer_newer_http(self):
-        import sqlite3
-        from farm.panel import local_account_observations
-        identifier='local100-20261003T062631Z'
-        with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);private=root/'private';exports=root/'exports'
-            folder=private/identifier;output=exports/identifier
-            folder.mkdir(parents=True);output.mkdir(parents=True)
-            (folder/'manifest.json').write_text(json.dumps({'output':str(output),'account_session_ids':{'1':10}}))
-            report=private/'all-accounts-b16-render-20261003'/'report.corrected.json';report.parent.mkdir()
-            report.write_text(json.dumps({'finished_at_utc':'2026-10-03 03:00:00','results':[
-                {'account_id':1,'session_id':10,'http':200,'valid_data':True,'patch_applied':True},
-                {'account_id':2,'session_id':20,'http':200,'valid_data':True,'patch_applied':False},
-                {'account_id':1,'session_id':9,'http':403,'valid_data':False,'outcome':'rejected'}]}))
-            with sqlite3.connect(folder/'local.sqlite3') as db:
-                db.execute('CREATE TABLE attempts(id INTEGER,account INTEGER,endpoint TEXT,http INTEGER,outcome TEXT,finished TEXT,sent INTEGER)')
-                db.execute("INSERT INTO attempts VALUES(1,1,'productRender',403,'rejected','2026-10-03T06:00:00+00:00',1)")
-                db.execute("INSERT INTO attempts VALUES(2,1,'shopInfo',200,'success','2026-10-03T06:01:00+00:00',1)")
-                db.execute("INSERT INTO attempts VALUES(3,1,'productRender',NULL,'reserved',NULL,0)")
-            with patch('farm.panel.LOCAL_RUN_ROOT',private),patch('farm.panel.EXPORT_ROOT',exports),patch('farm.local_ledger.LOCAL_ROOT',private):
-                rows=local_account_observations()
-            keyed={(r['account_id'],r['session_id'],r['endpoint']):r for r in rows}
-            self.assertEqual(keyed[(1,10,'productRender')]['http'],403)
-            self.assertEqual(keyed[(1,10,'productRender')]['source'],'local_batch')
-            self.assertEqual(keyed[(1,10,'shopInfo')]['state'],'available')
-            self.assertEqual(keyed[(2,20,'productRender')]['state'],'available')
-            self.assertIn((1,9,'productRender'),keyed)
-
     def test_local_batch_is_visible_without_database_or_private_material(self):
-        import sqlite3
         from farm.panel import local_run_summary
         identifier='local100-20261003T062631Z'
         with tempfile.TemporaryDirectory() as temp:
@@ -578,11 +549,8 @@ class LocalPanelTests(unittest.TestCase):
                 'sent':4,'success':0,'http403':4,'tasks':{'pending':1}}))
             (output/'delivery-summary.json').write_text(json.dumps({'complete_shop_jobs':0,'items':0}))
             (output/'delivery.zip').write_bytes(b'public-delivery')
-            with sqlite3.connect(folder/'local.sqlite3') as db:
-                db.executescript('CREATE TABLE shops(id INTEGER,data TEXT,closed INTEGER);CREATE TABLE tasks(id INTEGER,shop INTEGER,endpoint TEXT,state TEXT,target TEXT);CREATE TABLE attempts(id INTEGER,account INTEGER,endpoint TEXT,started TEXT,finished TEXT,http INTEGER,code TEXT,outcome TEXT,sent INTEGER,task INTEGER);')
-                db.execute('INSERT INTO shops VALUES(1,?,0)',(json.dumps({'shop_id':'7','shop_name':'Example'}),))
-                db.execute("INSERT INTO tasks VALUES(1,1,'shopInfo','retry_wait','')")
-                db.execute("INSERT INTO attempts VALUES(1,122,'shopInfo','2026-10-03T00:00:00Z','2026-10-03T00:00:01Z',403,NULL,'rejected',1,1)")
+            (folder/'history.json').write_text(json.dumps({'shops':[{'shop_id':'7','name':'Example','closed':False,'tasks':{'shopInfo':{'retry_wait':1}}}],
+                'requests':[{'attempt':1,'account_id':122,'endpoint':'shopInfo','at':'2026-10-03T00:00:01Z','http':403,'code':None,'outcome':'rejected','sent':True,'shop_id':'7','target':''}]}))
             store=Mock()
             store.rows.side_effect=AssertionError('local view must not query MySQL')
             store.transaction.side_effect=AssertionError('local view must not write MySQL')

@@ -298,7 +298,7 @@ def import_tasks(store,path,label='店铺任务',batch_key=None):
     from farm.tasks import load_tasks
     path=Path(path);tasks=load_tasks(path,strict=True)
     source_key=digest(path.read_bytes())
-    run=store.run(label,'task_sheet',[source_key,batch_key] if batch_key else source_key,{'scope':'custom_only','timezone':'America/Sao_Paulo'})
+    run=store.run(label,'task_sheet',[source_key,batch_key] if batch_key else source_key,{'scope':'custom_only','timezone':'America/Sao_Paulo','storage':'local_response_files','skip_closed_details':True,'skip_unavailable_details':True})
     now=utcnow();shops=[]
     for t in tasks:
         city=t.city;context=digest([t.lat,t.lng,city])

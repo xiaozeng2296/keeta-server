@@ -13,8 +13,6 @@ from farm.mysql_import import prepare_bundle
 from farm.mysql_worker import Worker
 from tests.test_mysql_farm import MysqlFarmTests
 
-from tests import test_local_batch as helpers
-L=helpers.L
 
 
 def info(status=3):return {'code':0,'data':{'shopId':'1','name':'shop','status':status},'_http_status':200}
@@ -59,51 +57,9 @@ class AccountChecksTests(unittest.TestCase):
         payload,details=A.choose_menu_targets(value)
         self.assertEqual(payload['shopCategoryList'][0]['spuIdList'],[7]);self.assertEqual(details,['7'])
 
-    def test_local_probe_persists_reservation_and_counters_without_changing_batch_tasks(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);master=helpers.LocalTests().setup_run(root,shops=1,account_count=1)
-            before=[tuple(r) for r in master.db.execute('SELECT * FROM tasks')]
-            output=root/'export-check';output.mkdir()
-            with patch.object(A,'ROOT',root),patch.object(A,'local_module',return_value=L):
-                checker=A.LocalProbe(master,1,master.shops[1],output)
-            def send(session,wire,**kwargs):
-                ep=next(k for k,v in A.PATHS.items() if v==urlsplit(wire.url).path)
-                current=master.vault.open(master.db.execute('SELECT blob FROM accounts WHERE id=1').fetchone()[0])
-                self.assertEqual(current['budgets'][ep]['used'],1)
-                mt=json.loads(wire.headers['mtgsig']);col=json.loads(L.decode_a5(mt['a5'],mt['a1'],mt['a3'],mt['a4'])[0])
-                self.assertEqual(current['bundle']['device']['sign_sequence'],col['b2'])
-                data={'shopInfo':info(),'productList':menu(),'productRender':render(),
-                      'productSpecifics':{'code':0,'data':{'spuId':7,'name':'custom','skuList':[]}}}[ep]
-                reply=Mock(status_code=200);reply.json.return_value=data;return reply
-            with patch('requests.Session.send',send):rows=A.check_flow(checker.send)
-            checker.close(True)
-            self.assertTrue(all(r['status']=='success' for r in rows),rows)
-            self.assertEqual(before,[tuple(r) for r in master.db.execute('SELECT * FROM tasks')])
-            self.assertIsNone(master.meta('probe_inflight'))
-            self.assertEqual(sum(b['used'] for b in master.accounts[1]['budgets'].values()),4)
-            self.assertGreater(master.accounts[1]['last_detail_end'],0)
-
-    def test_interrupted_probe_blocks_unsafe_collection_resume(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            master=helpers.LocalTests().setup_run(Path(tmp),account_count=1)
-            with master.db:master.set_meta('probe_inflight','synthetic-check')
-            resumed=L.LocalBatch(master.folder)
-            self.assertIsNone(resumed.pick(0))
-            self.assertEqual(resumed.fatal,'unfinished_probe_requires_reconciliation')
-
-    def test_probe_never_uses_db_copy_for_local_account(self):
-        local=Mock(accounts={1:{'session_id':8,'bundle':{'current':True}}});store=Mock()
-        store.rows.return_value=[{'active_session_id':8,'paused':True}]
-        self.assertEqual(A.load_account(store,local,1),({'current':True},'local'))
-        store.unseal.assert_not_called()
-        store.rows.return_value=[{'active_session_id':8,'paused':False}]
-        with self.assertRaises(A.CheckError):A.load_account(store,local,1)
-
-    def test_new_active_session_uses_current_database_material(self):
-        local=Mock(accounts={1:{'session_id':8,'bundle':{'old':True}}});store=Mock()
-        store.rows.side_effect=[[{'active_session_id':9,'paused':True}],[{'id':9}]]
-        store.unseal.return_value={'current':True}
-        self.assertEqual(A.load_account(store,local,1),({'current':True},'database'))
+    def test_active_session_is_always_loaded_from_authoritative_store(self):
+        store=Mock();store.rows.return_value=[{'id':9}];store.unseal.return_value={'current':True}
+        self.assertEqual(A.load_account(store,1),({'current':True},'database'))
 
     def test_database_verification_can_preserve_cooldown_without_changing_default(self):
         for preserve in (False,True):

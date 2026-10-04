@@ -6,7 +6,6 @@ import unittest
 from unittest.mock import patch
 from farm.fullsign import FullSigner,decode_a5,compute_a2
 from farm.mysql_import import carry_counters
-from farm.local_ledger import adopt_latest_accounts,LedgerUnavailable
 from tests.test_collection_refresh import identity
 
 
@@ -82,13 +81,6 @@ class NativeSigningCountersTests(unittest.TestCase):
         self.assertEqual(tuple(col[k] for k in ('b2','b17','b18')),(121,100,12))
         other={'request':{'headers':{'appsession':'new'}},'device':device()};before=deepcopy(other)
         carry_counters(other,old);self.assertEqual(other,before)
-
-    def test_new_batch_rejects_stale_post_counter_even_with_newer_total(self):
-        latest={'id':1,'session_id':1,'bundle':{'device':device()},'budgets':{}}
-        latest['bundle']['device'].update(post_sign_count=80,nil_user_sign_count=0)
-        incoming=deepcopy(latest);incoming['bundle']['device'].update(sign_sequence=90,post_sign_count=79)
-        with patch('farm.local_ledger.local_owners',return_value={(1,1):Path('/synthetic')}),patch('farm.local_ledger.account_snapshot',return_value=(latest,'2026-10-03')):
-            with self.assertRaises(LedgerUnavailable):adopt_latest_accounts([incoming],'2026-10-03')
 
     def test_explicit_unknown_or_invalid_sdk_user_state_is_not_inferred_from_token(self):
         dev=device(0,0,0);dev['token']='SYNTHETIC-LOGIN'

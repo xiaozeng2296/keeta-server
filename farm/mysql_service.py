@@ -6,6 +6,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import uuid
 import zipfile
+import os
+import tempfile
+from farm.response_files import local_reference
 
 from farm.mysql_store import ENDPOINTS, ROOT, compact, unpack_json, utcnow, digest, transient_database_error, log_failure
 from farm.mysql_selection import parse_ids, parse_tags, select_accounts
@@ -99,7 +102,7 @@ def create_subset_run(store,source_run_id,limit=100,*,skip_closed_details=False)
         for r in results:
             job_id=job_map[r['shop_job_id']];task_id=new_task_ids.get(task_keys.get(r['task_id']))
             key=digest([job_id,r['account_id'],r['endpoint'],str(r['target_id']),r['response_sha256']])
-            copied.append((key,job_id,task_id,r['account_id'],r['endpoint'],r['target_id'],r['observed_at'],True,r['response_blob'],r['response_sha256']))
+            copied.append((key,job_id,task_id,r['account_id'],r['endpoint'],r['target_id'],r['observed_at'],True,local_reference(r['response_blob']),r['response_sha256']))
         if copied:c.executemany('INSERT INTO task_results(result_key,shop_job_id,task_id,account_id,endpoint,target_id,observed_at,valid_data,response_blob,response_sha256) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',copied)
     return {'run_id':run_id,'shops':limit,'copied_results':len(copied),'reused':False}
 
@@ -114,11 +117,14 @@ def export_bundle(store, run_id, folder):
     folder = Path(folder); folder.mkdir(parents=True, exist_ok=True)
     summary = export_run(store,run_id,folder/'delivery.xlsx')
     archive = folder/'delivery.zip'
-    with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as out:
-        for path in sorted(folder.rglob('*')):
-            # Keep historical cost files on disk, but exclude them from new deliveries.
-            if path.is_file() and path != archive and path.name not in ('costs.json','costs.xlsx'):
-                out.write(path,path.relative_to(folder))
+    fd,temporary=tempfile.mkstemp(dir=folder,prefix='.delivery-',suffix='.zip')
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(temporary,'w',zipfile.ZIP_DEFLATED) as out:
+            out.write(folder/'delivery.xlsx','delivery.xlsx')
+        os.replace(temporary,archive)
+    finally:
+        if os.path.exists(temporary):os.unlink(temporary)
     return dict(summary,archive=str(archive.resolve()))
 
 
@@ -223,7 +229,7 @@ class ExecutionManager:
             worker=Worker(self.store)
             worker.replay_pending(job['run_id'])
             worker.recover(job['run_id'])
-            remaining=self.store.rows("SELECT COUNT(*) n FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s AND t.state NOT IN ('succeeded','skipped_closed','covered_by_details')",(job['run_id'],))[0]['n']
+            remaining=self.store.rows("SELECT COUNT(*) n FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s AND t.state NOT IN ('succeeded','skipped_closed','skipped_unavailable','covered_by_details')",(job['run_id'],))[0]['n']
             accounts=select_accounts(self.store,job['environment'],unpack_json(job['account_ids']),selection.get('tags'))
             endpoints=unpack_json(job['endpoints'])
             diagnostics=Worker(self.store).diagnose([a['id'] for a in accounts],endpoints,allow_recovery=True)
@@ -264,12 +270,45 @@ class ExecutionManager:
                       (totals['processed'],totals['sent'],totals['valid_count'],utcnow(),job['id'],self.owner))
         return totals
 
+    def configure_routes(self,job):
+        rows=self.store.rows('SELECT settings FROM collection_runs WHERE id=%s',(job['run_id'],))
+        settings=unpack_json(rows[0]['settings']);self.route_gates={};gates={};limits={};keys={}
+        for aid in unpack_json(job['account_ids']):
+            rows=self.store.rows('SELECT s.* FROM accounts a JOIN account_sessions s ON s.id=a.active_session_id WHERE a.id=%s',(aid,))
+            if not rows:continue
+            bundle=self.store.unseal(rows[0])
+            key=digest([bundle.get('proxy'),bundle.get('front_proxy')])
+            rid=settings.get('route_bindings',{}).get(str(aid))
+            limit=int(settings.get('per_route_concurrency',{}).get(rid,bundle.get('route_concurrency',1)))
+            if not 1<=limit<=8:raise ValueError('invalid_route_concurrency')
+            keys[aid]=key;limits[key]=min(limits.get(key,limit),limit)
+        for key,limit in limits.items():gates[key]=threading.BoundedSemaphore(limit)
+        self.route_gates={aid:gates[key] for aid,key in keys.items()}
+
+    def release_opening_selection(self,run_id):
+        from farm.response_files import load_response
+        with self.store.transaction() as c:
+            c.execute('SELECT settings FROM collection_runs WHERE id=%s FOR UPDATE',(run_id,))
+            row=c.fetchone();settings=unpack_json(row['settings'])
+            if not settings.get('verify_open') or settings.get('phase')=='collecting':return 'collecting'
+            c.execute("SELECT j.id,t.state FROM shop_jobs j LEFT JOIN tasks t ON t.shop_job_id=j.id AND t.endpoint='shopInfo' WHERE j.run_id=%s",(run_id,))
+            jobs=c.fetchall()
+            if not jobs or any(j['state']!='succeeded' for j in jobs):return 'pending'
+            c.execute("SELECT r.shop_job_id,r.response_blob FROM task_results r JOIN shop_jobs j ON j.id=r.shop_job_id WHERE j.run_id=%s AND r.endpoint='shopInfo' AND r.valid_data=TRUE ORDER BY r.observed_at,r.id",(run_id,))
+            latest={r['shop_job_id']:load_response(r['response_blob']) for r in c.fetchall()}
+            if any(latest.get(j['id'],{}).get('data',{}).get('status') not in (3,'3') for j in jobs):return 'not_open'
+            settings.update(phase='collecting',collection_started_at=utcnow().isoformat()+'Z')
+            c.execute('UPDATE collection_runs SET settings=%s WHERE id=%s',(compact(settings),run_id))
+            c.execute("UPDATE tasks t JOIN shop_jobs j ON j.id=t.shop_job_id SET t.state='pending',t.updated_at=%s WHERE j.run_id=%s AND t.state='selection_hold'",(utcnow(),run_id))
+            return 'released'
+
     def _collect(self,job,selection):
         accounts=unpack_json(job['account_ids'])
         concurrency=min(max(1,int(selection.get('concurrency',1))),len(accounts),8)
         if not accounts:return 'waiting','no_eligible_account_or_work'
         remaining=max(0,job['max_requests']-job['processed'])
         lock=threading.Lock();halt=threading.Event();terminal=[];network_failures=[]
+        rejects=list(getattr(self,'recent_rejections',[]));detail_ready={};in_flight=0;unavailable=set()
         def stop(state,reason):
             with lock:
                 if not terminal:terminal.append((state,reason))
@@ -282,9 +321,12 @@ class ExecutionManager:
                 stop('stopped','user_stop');return False
             return not halt.is_set()
         def lane(ids):
-            nonlocal remaining
+            nonlocal remaining,in_flight
             worker=Worker(self.store);worker.execution_id=job['id'];claim=None
-            worker.details_ready_at={}
+            worker.details_ready_at=detail_ready;worker.detail_delay=float(job.get('delay_seconds',4))
+            worker.route_gates=getattr(self,'route_gates',{})
+            worker.last_account_id=ids[-1]
+            empty_polls=0
             def wait_for_details(deadline):
                 next_check=time.monotonic()+5
                 while time.monotonic()<deadline and not halt.is_set():
@@ -295,6 +337,8 @@ class ExecutionManager:
             try:
                 while ids and not halt.is_set() and active():
                     with lock:
+                        ids=[aid for aid in ids if aid not in unavailable]
+                        if not ids:return
                         if remaining<=0:return
                         remaining-=1
                     claim=worker.claim(job['run_id'],endpoints=unpack_json(job['endpoints']),
@@ -307,8 +351,24 @@ class ExecutionManager:
                         deadlines=[due for aid,due in worker.details_ready_at.items() if aid in ids and due>time.monotonic()]
                         if deadlines:
                             wait_for_details(min(deadlines));continue
+                        with lock:busy=in_flight>0
+                        if busy:halt.wait(.2);continue
+                        # Another lane may still be reserving its first task.
+                        # Avoid silently losing concurrency at that boundary.
+                        empty_polls+=1
+                        if empty_polls<3:halt.wait(.2);continue
                         return
-                    result=worker.execute(claim)
+                    empty_polls=0
+                    with lock:in_flight+=1
+                    try:result=worker.execute(claim)
+                    finally:
+                        with lock:in_flight-=1
+                    if result.get('sent'):
+                        with lock:
+                            if result.get('http')==403:rejects.append(result['account_id'])
+                            else:rejects.clear()
+                            rejected=len(rejects)>=4 and len(set(rejects))>=2
+                        if rejected:stop('failed','consecutive_cross_account_http403')
                     if result.get('sent') and result['endpoint']=='productSpecifics':
                         worker.details_ready_at[result['account_id']]=time.monotonic()+float(job['delay_seconds'])
                     if result['outcome']=='success' and result['endpoint'] in ('productList','productRender','productSpecifics'):
@@ -320,7 +380,12 @@ class ExecutionManager:
                         # A broken route does not stop unrelated accounts.
                         # The failed account is not retried in this execution
                         # pass; its task keeps the durable network backoff.
-                        with lock:network_failures.append(result['account_id'])
+                        with lock:
+                            failed=result['account_id'];network_failures.append(failed)
+                            gate=worker.route_gates.get(failed)
+                            unavailable.add(failed)
+                            if gate is not None:
+                                unavailable.update(aid for aid,g in worker.route_gates.items() if g is gate)
                         ids=[aid for aid in ids if aid!=result['account_id']]
                     # The next claim can use ordinary endpoints during the detail interval.
             except Exception as exc:
@@ -329,8 +394,9 @@ class ExecutionManager:
                 stop('waiting' if transient_database_error(exc) else 'failed',
                      'database_unavailable' if transient_database_error(exc) else type(exc).__name__)
         with ThreadPoolExecutor(max_workers=concurrency,thread_name_prefix='keeta-collector') as pool:
-            futures=[pool.submit(lane,accounts[i::concurrency]) for i in range(concurrency)]
+            futures=[pool.submit(lane,accounts[i:]+accounts[:i]) for i in range(concurrency)]
             for future in futures:future.result()
+        self.recent_rejections=rejects
         if terminal:return terminal[0]
         if remaining<=0:return 'limit','request_limit'
         if network_failures:return 'waiting','transport_error'
@@ -347,7 +413,24 @@ class ExecutionManager:
             job.update(self.record_progress(job))
             worker.reconcile_closed_details(job['run_id'])
             worker.reconcile_menu_fallback(job['run_id'])
-            state,reason=self._collect(job,selection)
+            self.configure_routes(job)
+            recent=self.store.rows("SELECT a.account_id,a.http_status FROM request_attempts a JOIN tasks t ON t.id=a.task_id JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s AND a.counts_budget=TRUE AND a.state IN ('done','uncertain') ORDER BY a.started_at DESC,a.id DESC LIMIT 4",(job['run_id'],))
+            self.recent_rejections=[]
+            for attempt in recent:
+                if attempt['http_status']!=403:break
+                self.recent_rejections.append(attempt['account_id'])
+            if len(self.recent_rejections)>=4 and len(set(self.recent_rejections))>=2:
+                state,reason='failed','consecutive_cross_account_http403'
+            else:
+                phase=self.release_opening_selection(job['run_id'])
+                if phase=='not_open':state,reason='failed','opening_verification_incomplete'
+                else:
+                    state,reason=self._collect(job,selection)
+                    if state=='waiting' and reason=='no_eligible_account_or_work':
+                        phase=self.release_opening_selection(job['run_id'])
+                        if phase=='released':
+                            job.update(self.record_progress(job));state,reason=self._collect(job,selection)
+                        elif phase=='not_open':state,reason='failed','opening_verification_incomplete'
             if reason=='database_unavailable':
                 self.save_outcome(job,state,reason,None)
                 return
@@ -355,7 +438,7 @@ class ExecutionManager:
                 diagnostics=worker.diagnose(unpack_json(job['account_ids']),unpack_json(job['endpoints']))
             summary=export_bundle(self.store,job['run_id'],EXPORT_ROOT/f'execution-{job["id"]}')
             summary['account_diagnostics']=diagnostics
-            counts=self.store.rows("SELECT COUNT(*) total,SUM(t.state='succeeded' OR (t.state='covered_by_details' AND t.endpoint='productRender') OR (t.state='skipped_closed' AND t.endpoint='productSpecifics')) done FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s",(job['run_id'],))[0]
+            counts=self.store.rows("SELECT COUNT(*) total,SUM(t.state='succeeded' OR (t.state='covered_by_details' AND t.endpoint='productRender') OR (t.state IN ('skipped_closed','skipped_unavailable') AND t.endpoint='productSpecifics')) done FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s",(job['run_id'],))[0]
             if counts['total'] and counts['total']==counts['done']:
                 if summary['partial_shop_jobs']==0:
                     state='complete'; reason='all_tasks_and_coverage_complete'

@@ -13,11 +13,10 @@ import ipaddress
 import json
 import os
 from pathlib import Path
-import sqlite3
 import sys
 import time
 import uuid
-import zlib
+from farm.response_files import load_response, save_response
 
 import requests
 from farm.fullsign import FullSigner, compute_a2, decode_a5
@@ -35,41 +34,7 @@ class CheckError(Exception):
     """A fixed diagnostic code, never an exception containing credentials."""
 
 
-def local_module():
-    from farm import local_batch
-    return local_batch
-
-
-def latest_folder(value='latest'):
-    if value == 'latest':
-        pointer = ROOT/'.private/local100-latest.json'
-        return Path(json.loads(pointer.read_text())['private']) if pointer.exists() else None
-    return Path(value).resolve()
-
-
-@contextmanager
-def local_lock(folder):
-    if folder is None:
-        yield None
-        return
-    with (folder/'runner.lock').open('a') as lock:
-        try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError: raise CheckError('local_batch_is_running') from None
-        runtime = local_module().LocalBatch(folder)
-        try: yield runtime
-        finally: runtime.db.close()
-
-
-def load_account(store, local, aid):
-    # The local snapshot has newer counters and usage than its paused DB copy.
-    if local and aid in local.accounts:
-        active=store.rows('SELECT active_session_id,paused FROM accounts WHERE id=%s',(aid,))
-        if not active:raise CheckError('unknown_account')
-        snapshot=local.accounts[aid]
-        if snapshot.get('session_id')==active[0]['active_session_id']:
-            if not active[0]['paused']:raise CheckError('account_state_requires_reconciliation')
-            return deepcopy(snapshot['bundle']), 'local'
-        # A newly imported active session must not be replaced with an old local copy.
+def load_account(store, aid):
     rows = store.rows('SELECT s.* FROM accounts a JOIN account_sessions s ON s.id=a.active_session_id WHERE a.id=%s', (aid,))
     if not rows: raise CheckError('unknown_account')
     return store.unseal(rows[0]), 'database'
@@ -139,81 +104,6 @@ def check_flow(send, stop_after='shopFlow'):
     return results
 
 
-class LocalProbe:
-    """Isolated tasks; reserve and persist against the original account ledger."""
-    def __init__(self, master, aid, shop, output, *, recovery=False, hard_limits=None, clear_verified=True):
-        L=local_module();self.master=master;self.aid=aid;self.recovery=recovery
-        self.hard_limits=hard_limits or {}
-        self.clear_verified=clear_verified
-        if master.meta('probe_inflight'):
-            raise CheckError('unfinished_probe_requires_reconciliation')
-        with master.db:master.renew_daily_budgets(time.time())
-        self.folder=ROOT/'.private/account-checks'/output.name/str(aid)
-        manifest=dict(master.manifest,shops=[shop],output=str(output/str(aid)),concurrency=1,
-                      snapshot_business_date=master.meta('budget_day'),delay_seconds=4,
-                      account_ids=[aid],account_session_ids={str(aid):master.accounts[aid].get('session_id')})
-        L.init_db(self.folder,manifest,[deepcopy(master.accounts[aid])],(master.folder/'local.key').read_bytes())
-        self.runner=L.LocalBatch(self.folder)
-        self.runner.routes=deepcopy(master.routes)
-        with self.runner.db:self.runner.db.execute('DELETE FROM tasks')
-        original_save=self.runner.save_account
-        def save(account):
-            # Reserve in the authoritative store before sending or acknowledging.
-            with master.db:master.save_account(account)
-            master.accounts[aid]=deepcopy(account)
-            original_save(account)
-        self.runner.save_account=save
-        self.runner.route_config=master.route_config
-        with self.runner.db:self.runner.set_meta('budget_day',master.meta('budget_day'))
-        with master.db:master.set_meta('probe_inflight',str(self.folder))
-
-    def send(self,endpoint,payload,target):
-        r=self.runner
-        if endpoint=='productSpecifics':
-            remaining=r.last_detail_end.get(self.aid,0)+4-time.time()
-            if remaining>0:time.sleep(remaining)
-        with r.db:
-            r.db.execute("DELETE FROM tasks WHERE state IN ('pending','retry_wait')")
-            r.enqueue(1,endpoint,target,payload)
-        claim=None if self.recovery else r.pick(0)
-        if self.recovery:
-            # An explicit manual probe may cross a cooldown, never the hard daily cap.
-            # Reserve directly so the persisted cooldown remains intact until success.
-            claim=None
-            account=r.accounts[self.aid];budget=account['budgets'].get(endpoint,{})
-            if not budget:
-                return {'sent':False,'status':'missing_budget_policy'},None
-            if budget.get('used',0)>=self.hard_limits.get(endpoint,budget.get('limit',0)):
-                return {'sent':False,'status':'daily_budget_reached'},None
-            with r.lock,r.db:
-                task=dict(r.db.execute('SELECT * FROM tasks WHERE state=\'pending\' AND endpoint=? ORDER BY id DESC LIMIT 1',(endpoint,)).fetchone())
-                r.db.execute("UPDATE tasks SET state='leased',attempts=attempts+1 WHERE id=?",(task['id'],))
-                budget['used']+=1;r.save_account(account);r.busy.add(self.aid)
-                attempt=r.db.execute('INSERT INTO attempts(task,account,endpoint,started) VALUES(?,?,?,?)',
-                                     (task['id'],self.aid,endpoint,datetime.now(timezone.utc).isoformat())).lastrowid
-                claim=task,account,attempt
-        if claim is None:
-            wait=r.waiting()
-            return {'sent':False,'status':(wait or {}).get('reason','not_eligible'),'retry_at':(wait or {}).get('retry_at')},None
-        task,account,attempt=claim
-        if task['endpoint']!=endpoint:raise RuntimeError('unexpected_probe_task')
-        data,response,error,sent,metrics=r.send(*claim)
-        with redirect_stdout(io.StringIO()):r.finish(*claim,data,response,error,sent,metrics)
-        outcome,valid=classify(endpoint,data,r.shops[1]['shop_id'],target) if not error else ('transport_error' if sent else 'local_error',False)
-        outcome=r.db.execute('SELECT outcome FROM attempts WHERE id=?',(attempt,)).fetchone()[0]
-        row={'sent':sent,'http':data.get('_http_status'),'code':data.get('code'),'status':outcome,'error_type':error}
-        if self.recovery and self.clear_verified and outcome=='success':
-            from farm.account_controls import clear_local_cooldown
-            row['cooldown_cleared']=clear_local_cooldown(r,self.aid,endpoint,verified=True)
-        if response is not None and not valid:row['response_sha256']=hashlib.sha256(response.content).hexdigest()
-        return row,data if valid and outcome=='success' else None
-
-    def close(self,complete):
-        self.runner.db.close()
-        if complete:
-            with self.master.db:self.master.set_meta('probe_inflight',None)
-
-
 class DatabaseProbe:
     def __init__(self,store,aid,shop,*,recovery=False,clear_verified=True):
         self.store=store;self.aid=aid;self.shop=shop;self.worker=Worker(store);self.recovery=recovery
@@ -242,7 +132,7 @@ class DatabaseProbe:
         result=self.worker.execute(claim)
         row={k:result.get(k) for k in ('sent','http','code','error_type')};row['status']=result['outcome']
         saved=self.store.rows('SELECT response_blob FROM task_results WHERE task_id=%s ORDER BY id DESC LIMIT 1',(tid,))
-        data=json.loads(zlib.decompress(saved[0]['response_blob'])) if saved else None
+        data=load_response(saved[0]['response_blob']) if saved else None
         failure=self.store.failure_response(claim['attempt_id'])
         if failure:row['response_sha256']=failure.get('body_sha256')
         if self.recovery and self.clear_verified and result['outcome']=='success':
@@ -257,11 +147,7 @@ class DatabaseProbe:
             c.execute("UPDATE tasks SET state='cancelled',last_reason='bounded_probe_finished' WHERE shop_job_id=%s AND state IN ('pending','retry_wait')",(self.job,))
 
 
-def select_shop(store,local,shop_id=None):
-    if local:
-        jobs=list(local.shops.values())
-        if shop_id:jobs=[x for x in jobs if x['shop_id']==shop_id]
-        if jobs:return jobs[0]
+def select_shop(store,shop_id=None):
     query='SELECT shop_id,latitude,longitude,city_id FROM shop_jobs'
     rows=store.rows(query+(' WHERE shop_id=%s' if shop_id else '')+' ORDER BY id DESC LIMIT 1',(shop_id,) if shop_id else ())
     if not rows:raise ValueError('shop_not_found')
@@ -273,77 +159,55 @@ def emit(value):print(json.dumps(value,ensure_ascii=False,default=str,indent=2))
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='账号签名 / 出口 / 四接口检查；输出不含凭据。')
-    p.add_argument('mode',choices=('signatures','proxy','apis','set-route'))
+    p.add_argument('mode',choices=('signatures','proxy','apis'))
     p.add_argument('--accounts',help='明确账号 ID，例如 97,98 或 100-105')
-    p.add_argument('--all',action='store_true',help='明确选择所有现有账号')
-    p.add_argument('--local-batch',default='latest',help='本地状态目录，默认 latest')
-    p.add_argument('--shop-id',help='已有任务中的店铺 ID；建议选择当前营业店')
-    p.add_argument('--route',choices=('local','clash','saved-default'),default='local')
-    p.add_argument('--execute',action='store_true',help='实际发送验证请求或保存出口；默认只预览')
-    args=p.parse_args(argv);os.umask(0o077)
-    store=Store();folder=latest_folder(args.local_batch)
-    with local_lock(folder) as local:
-        if args.mode in ('proxy','set-route'):
-            route=({'proxy':'http://127.0.0.1:7897'} if args.route=='clash' else
-                   proxy_defaults(store) if args.route=='saved-default' else local.route_config() if local else {})
-            if not route.get('proxy'):raise ValueError('proxy_not_configured')
-            result={'route':proxy_summary(route),'executed':args.execute}
-            if args.execute and args.mode=='set-route':
-                if local is None:raise ValueError('local_batch_required')
-                temp=local.folder/'route.enc.tmp';temp.write_bytes(local.vault.seal(route));temp.replace(local.folder/'route.enc')
-                result['saved']=True
-            elif args.execute:
-                started=time.monotonic()
-                with ProxyRoute(route.get('proxy'),route.get('front_proxy')) as proxy,requests.Session() as session:
-                    session.trust_env=False
-                    reply=session.get('https://api.ipify.org',proxies={'http':proxy,'https':proxy},timeout=(15,20),allow_redirects=False)
-                result.update(http=reply.status_code,elapsed_ms=round((time.monotonic()-started)*1000))
-                if reply.status_code==200:result['exit_ip']=str(ipaddress.ip_address(reply.text.strip()))
-            emit(result);return
-        if bool(args.accounts)==bool(args.all):p.error('请选择 --accounts 或 --all，不能同时使用')
-        ids=parse_ids(args.accounts) if args.accounts else [r['id'] for r in store.rows('SELECT id FROM accounts ORDER BY id')]
-        shop=select_shop(store,local,args.shop_id)
-        report={'mode':args.mode,'shop_id':shop['shop_id'],'executed':args.execute if args.mode=='apis' else False,'results':[],
-                'maximum_business_requests':len(ids)*4 if args.mode=='apis' else 0}
-        output=ROOT/'exports'/('account-check-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:6])
-        output.mkdir(parents=True)
-        rejects=[]
-        for aid in ids:
-            checker=None;complete=False
-            try:
-                from farm.local_ledger import local_owner
-                from farm.account_controls import active_session
-                owner=local_owner(aid,active_session(store,aid))
-                current_context=nullcontext(local) if local and owner==local.folder else local_lock(owner)
-                with current_context as current:
-                    bundle,source=load_account(store,current,aid)
-                    if args.mode=='signatures':rows=sign_check(bundle,shop)
-                    elif not args.execute:rows=[{'endpoint':e,'status':'preview','sent':False} for e in ENDPOINTS]
-                    else:
-                        checker=LocalProbe(current,aid,shop,output) if source=='local' else DatabaseProbe(store,aid,shop)
-                        rows=check_flow(checker.send)
-                    complete=True
-                    report['results'].append({'account_id':aid,'source':source,'endpoints':rows,
-                        'passed':[r['endpoint'] for r in rows if r.get('signature_valid') is True or r.get('status')=='success'],
-                        'failed':[r['endpoint'] for r in rows if r.get('signature_valid') is False or r.get('sent') and r.get('status')!='success'],
-                        'not_tested':[r['endpoint'] for r in rows if r.get('sent') is False]})
-                    for row in rows:
-                        if row.get('sent'):
-                            if row.get('http')==403:rejects.append(aid)
-                            else:rejects=[]
-                    if len(rejects)>=4 and len(set(rejects))>=2:
-                        report['stop_reason']='consecutive_cross_account_http403'
-                    if checker is not None:checker.close(complete);checker=None
-                    if report.get('stop_reason'):break
-            except Exception as exc:
-                report['results'].append({'account_id':aid,'error_type':type(exc).__name__,'status':str(exc) if isinstance(exc,CheckError) else 'not_validated'})
-                if checker is not None:report['stop_reason']='incomplete_probe';break
-            finally:
-                if checker is not None:checker.close(complete)
-                (output/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2,default=str)+'\n')
-        report['report_file']=str(output/'report.json')
-        (output/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2,default=str)+'\n')
-        emit(report)
+    p.add_argument('--all',action='store_true')
+    p.add_argument('--shop-id')
+    p.add_argument('--execute',action='store_true',help='实际发送验证请求；默认只预览')
+    args=p.parse_args(argv);os.umask(0o077);store=Store()
+    if bool(args.accounts)==bool(args.all):p.error('请选择 --accounts 或 --all，不能同时使用')
+    ids=parse_ids(args.accounts) if args.accounts else [r['id'] for r in store.rows('SELECT id FROM accounts ORDER BY id')]
+    shop=select_shop(store,args.shop_id) if args.mode!='proxy' else None
+    report={'mode':args.mode,'shop_id':shop['shop_id'] if shop else None,'executed':args.execute if args.mode!='signatures' else False,
+            'results':[],'maximum_business_requests':len(ids)*4 if args.mode=='apis' else 0}
+    output=ROOT/'exports'/('account-check-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:6])
+    output.mkdir(parents=True,mode=0o700);rejects=[]
+    from farm.local_files import atomic_json
+    for aid in ids:
+        checker=None;complete=False
+        try:
+            bundle,source=load_account(store,aid)
+            if args.mode=='signatures':rows=sign_check(bundle,shop)
+            elif args.mode=='proxy':
+                route={k:bundle.get(k) for k in ('proxy','front_proxy')}
+                if not route['proxy']:raise CheckError('proxy_not_configured')
+                row={'route':proxy_summary(route),'sent':False,'status':'preview'}
+                if args.execute:
+                    started=time.monotonic()
+                    with ProxyRoute(**route) as proxy,requests.Session() as session:
+                        session.trust_env=False
+                        reply=session.get('https://api.ip.sb/ip',proxies={'http':proxy,'https':proxy},timeout=(15,20),allow_redirects=False)
+                    row.update(sent=True,http=reply.status_code,elapsed_ms=round((time.monotonic()-started)*1000),status='success' if reply.status_code==200 else 'http_error')
+                    if reply.status_code==200:row['exit_ip']=str(ipaddress.ip_address(reply.text.strip()))
+                rows=[dict(row,endpoint='proxy')]
+            elif not args.execute:rows=[{'endpoint':e,'status':'preview','sent':False} for e in ENDPOINTS]
+            else:
+                checker=DatabaseProbe(store,aid,shop);rows=check_flow(checker.send)
+            complete=True
+            report['results'].append({'account_id':aid,'source':source,'endpoints':rows})
+            for row in rows:
+                if row.get('sent'):
+                    if row.get('http')==403:rejects.append(aid)
+                    else:rejects=[]
+            if len(rejects)>=4 and len(set(rejects))>=2:report['stop_reason']='consecutive_cross_account_http403'
+            if report.get('stop_reason'):break
+        except Exception as exc:
+            report['results'].append({'account_id':aid,'error_type':type(exc).__name__,'status':str(exc) if isinstance(exc,CheckError) else 'not_validated'})
+            if checker is not None:report['stop_reason']='incomplete_probe';break
+        finally:
+            if checker is not None:checker.close(complete)
+            atomic_json(output/'report.json',report)
+    report['report_file']=str(output/'report.json');atomic_json(output/'report.json',report);emit(report)
 
 
 if __name__=='__main__':

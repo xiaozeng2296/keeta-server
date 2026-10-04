@@ -2,8 +2,11 @@
 from copy import deepcopy
 from datetime import timezone
 import json
+import hashlib
+import os
+import tempfile
 from pathlib import Path
-import zlib
+from farm.response_files import load_response, save_response
 import openpyxl
 from openpyxl.styles import Font,PatternFill
 
@@ -110,10 +113,21 @@ def apply_detail_policy(check,closed,unavailable_ids=()):
     return check
 
 
+def text_chunks(value, limit=30000):
+    """Excel counts UTF-16 units; never split a non-BMP character in half."""
+    start=0;units=0
+    for index,char in enumerate(value):
+        width=2 if ord(char)>0xffff else 1
+        if units+width>limit:
+            yield value[start:index];start=index;units=0
+        units+=width
+    yield value[start:]
+
+
 def write_workbook(path,shop_rows,item_rows,coverage_rows,source_metadata):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     wb=openpyxl.Workbook();ws=wb.active;ws.title='店铺信息'
-    overflow=[]
+    overflow=[];long_sheet=None
     for sheet,columns,rows in ((ws,CK.SHOP_COLS,shop_rows),(wb.create_sheet('菜品信息'),CK.ITEM_COLS,item_rows)):
         sheet.append(columns);sheet.freeze_panes='A2';sheet.auto_filter.ref=f'A1:{openpyxl.utils.get_column_letter(len(columns))}1'
         for cell in sheet[1]:cell.font=Font(bold=True,color='FFFFFF');cell.fill=PatternFill('solid',fgColor='334155')
@@ -121,19 +135,34 @@ def write_workbook(path,shop_rows,item_rows,coverage_rows,source_metadata):
             values=[]
             for key in columns:
                 value=row.get(key,'');value='' if value is None else value
-                if isinstance(value,str) and len(value)>32767:
-                    folder=path.with_suffix('.overflow');folder.mkdir(exist_ok=True)
-                    filename=digest(value)+'.json';(folder/filename).write_text(value)
-                    overflow.append({'shop_id':row.get('shop_id'),'item_id':row.get('item_id'),'column':key,'file':folder.name+'/'+filename})
-                    value=compact({'full_value_file':folder.name+'/'+filename,'sha256':digest(value),'truncated':False})
+                if isinstance(value,str) and len(value.encode('utf-16-le'))//2>32767:
+                    if long_sheet is None:
+                        long_sheet=wb.create_sheet('长字段内容')
+                        long_sheet.append(['引用ID','来源工作表','来源行','字段','分片序号','分片总数','内容','SHA256'])
+                        long_sheet.freeze_panes='A2'
+                    sha=hashlib.sha256(value.encode()).hexdigest()
+                    ref=f'{sheet.title}:{row_number}:{key}'
+                    chunks=list(text_chunks(value));start_row=long_sheet.max_row+1
+                    for index,chunk in enumerate(chunks,1):
+                        long_sheet.append([ref,sheet.title,row_number,key,index,len(chunks),chunk,sha])
+                        for cell in long_sheet[long_sheet.max_row]:
+                            if isinstance(cell.value,str):cell.data_type='s'
+                    pointer=dict(sheet=long_sheet.title,reference=ref,first_row=start_row,
+                                 chunks=len(chunks),sha256=sha,truncated=False)
+                    overflow.append(dict(pointer,shop_id=row.get('shop_id'),item_id=row.get('item_id'),column=key))
+                    value=compact(pointer)
                 values.append(value)
             sheet.append(values)
-            # Avoid max_row/max_column scanning all accumulated cells per row.
             for cell in next(sheet.iter_rows(min_row=row_number,max_row=row_number,min_col=1,max_col=len(columns))):
                 if isinstance(cell.value,str):cell.data_type='s'
-    wb.save(path)
+    fd,temporary=tempfile.mkstemp(dir=path.parent,prefix='.workbook-',suffix='.xlsx');os.close(fd)
+    try:
+        wb.save(temporary);os.replace(temporary,path)
+    finally:
+        if os.path.exists(temporary):os.unlink(temporary)
+    from farm.local_files import atomic_json
     metadata=dict(source_metadata,shop_rows=len(shop_rows),item_rows=len(item_rows),shops=coverage_rows,overflow=overflow)
-    path.with_suffix('.coverage.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2,default=str)+'\n')
+    atomic_json(path.with_suffix('.coverage.json'),metadata)
     return {'path':str(path.resolve()),'shops':len(shop_rows),'items':len(item_rows),
             'complete_shop_jobs':sum(r['complete'] for r in coverage_rows),'partial_shop_jobs':sum(not r['complete'] for r in coverage_rows),'overflow_cells':len(overflow)}
 
@@ -146,7 +175,7 @@ def export_run(store,run_id,path):
     results=store.rows('SELECT r.*,a.user_id FROM task_results r JOIN shop_jobs j ON j.id=r.shop_job_id LEFT JOIN accounts a ON a.id=r.account_id WHERE j.run_id=%s ORDER BY r.observed_at,r.id',(run_id,))
     grouped={}
     for row in results:
-        row['response']=json.loads(zlib.decompress(row['response_blob']));grouped.setdefault(row['shop_job_id'],[]).append(row)
+        row['response']=load_response(row['response_blob']);grouped.setdefault(row['shop_job_id'],[]).append(row)
     shops=[];items=[];checks=[]
     for job in jobs:
         raw=grouped.get(job['id'],[]);infos=[r for r in raw if r['endpoint']=='shopInfo'];menus=[r for r in raw if r['endpoint']=='productList']
@@ -167,11 +196,16 @@ def export_run(store,run_id,path):
                 row.update(create_time=menu['observed_at'].isoformat(sep=' '),timestamp=int(menu['observed_at'].replace(tzinfo=timezone.utc).timestamp()))
             items.extend(rows)
         else:check={'menu_complete':False,'custom_details_complete':False,'declared_products':None,'missing_main_ids':[],'missing_detail_ids':[],'nested_unresolved_ids':[]}
-        apply_detail_policy(check,job['id'] in closed)
+        unavailable=set()
+        if settings.get('skip_unavailable_details') is True and menu:
+            unavailable=unavailable_products(merged)
+            unavailable.update(str(r['target_id']) for r in store.rows(
+                "SELECT target_id FROM tasks WHERE shop_job_id=%s AND endpoint='productSpecifics' AND state='skipped_unavailable'",(job['id'],)))
+        apply_detail_policy(check,job['id'] in closed,unavailable)
         full=bool(info) and bool(menu) and check['menu_complete'] and check['custom_details_complete']
         check.update(shop_job_id=job['id'],shop_id=job['shop_id'],shop_info_complete=bool(info),
                      full_data_complete=full,
-                     complete=bool(info) and bool(menu) and check['menu_complete'] and (check['custom_details_complete'] or not check['details_required']))
+                     complete=bool(info) and bool(menu) and check['menu_complete'] and check['details_policy_complete'])
         checks.append(check)
     return write_workbook(path,shops,items,checks,{'run_id':run_id,'source':'mysql','timestamps':'UTC','atomic_cross_account_snapshot':False,'skip_closed_details':settings.get('skip_closed_details') is True})
 

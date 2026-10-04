@@ -11,10 +11,9 @@ import os
 from pathlib import Path
 import time
 
-from farm.account_checks import local_lock, load_account
+from farm.account_checks import load_account
 from farm.fingerprint_refresh import before_business, ROOT
 from farm.fullsign import FullSigner
-from farm.local_ledger import local_owner
 from farm.mysql_store import Store, utcnow, close_connection
 from mtgsig.fingerprint_refresh import CONFIG, build_report, refresh_status
 
@@ -42,12 +41,11 @@ def account_lock(store, aid, sid):
 def maintain(store, aid, *, send=False, config_path=None, enable_auto=False):
     rows=store.rows('SELECT active_session_id,paused FROM accounts WHERE id=%s',(aid,))
     if not rows:raise RuntimeError('unknown_account')
-    sid=rows[0]['active_session_id'];owner=local_owner(aid,sid)
-    with local_lock(owner) as local,account_lock(store,aid,sid):
+    sid=rows[0]['active_session_id']
+    with account_lock(store,aid,sid):
         current=store.rows('SELECT active_session_id,paused FROM accounts WHERE id=%s',(aid,))[0]
         if current['active_session_id']!=sid:raise RuntimeError('active_session_changed')
-        if local and not current['paused']:raise RuntimeError('local_account_not_paused')
-        bundle,source=load_account(store,local,aid)
+        bundle,source=load_account(store,aid)
         original=deepcopy(bundle)
         if config_path:
             config=json.loads(Path(config_path).read_text())
@@ -70,17 +68,13 @@ def maintain(store, aid, *, send=False, config_path=None, enable_auto=False):
         meta=path.with_suffix('.json');meta.write_text(json.dumps({'account_id':aid,'session_id':sid,'encryption_key_id':key,'source':source}));meta.chmod(0o600)
         def persist(device):
             active=store.rows('SELECT active_session_id,paused FROM accounts WHERE id=%s',(aid,))[0]
-            if active['active_session_id']!=sid or local and not active['paused']:raise RuntimeError('active_session_changed')
+            if active['active_session_id']!=sid:raise RuntimeError('active_session_changed')
             bundle['device']=deepcopy(device)
-            if local:
-                local.accounts[aid]['bundle']=deepcopy(bundle)
-                with local.db:local.save_account(local.accounts[aid])
-            else:
-                key_id,encrypted=store.seal(bundle)
-                with store.transaction() as c:
-                    c.execute('UPDATE account_sessions SET encryption_key_id=%s,credential_blob=%s,updated_at=%s WHERE id=%s',
-                              (key_id,encrypted,utcnow(),sid))
-        route=local.route_config(local.accounts[aid]) if local else bundle
+            key_id,encrypted=store.seal(bundle)
+            with store.transaction() as c:
+                c.execute('UPDATE account_sessions SET encryption_key_id=%s,credential_blob=%s,updated_at=%s WHERE id=%s',
+                          (key_id,encrypted,utcnow(),sid))
+        route=bundle
         try:
             result=before_business(signer,bundle,account_id=aid,session_id=sid,persist=persist,
                                    proxy=route.get('proxy'),front_proxy=route.get('front_proxy'))
