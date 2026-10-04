@@ -1,0 +1,105 @@
+{
+  "provenance": {
+    "capture": "dump/a9_recovery/native_cbc_wrappers_01.json",
+    "execution": "SDK CBC/PKCS7 wrappers on device; synthetic key/plaintext; private contexts",
+    "flag_unchanged": true,
+    "generator": "tools/a9_cbc_probe.py",
+    "functions_rva": {
+      "aes_cbc": "0x30c088",
+      "twofish_cbc": "0x39556c",
+      "twofish_cbc_vm": "0x395358"
+    }
+  },
+  "vectors": [
+    {
+      "mode": "aes",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "03",
+      "ciphertext": "b617360c3fb35621eac0d4c9cdc0b2ee"
+    },
+    {
+      "mode": "aes",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e65",
+      "ciphertext": "a61c98f1d5eef4a4ef7ac78db1f0349e"
+    },
+    {
+      "mode": "aes",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c",
+      "ciphertext": "9d23e3988b474bbb2a2a04636028863ff79cabe1e05b61f6c9e0165c97ad580c"
+    },
+    {
+      "mode": "aes",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c73",
+      "ciphertext": "9d23e3988b474bbb2a2a04636028863fdabedc87f59d7397599de00881b03cf7"
+    },
+    {
+      "mode": "aes",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f",
+      "ciphertext": "9d23e3988b474bbb2a2a04636028863f446abc0cc0495855b56aa4f335587e6273760835df1e6fecebe55b495eefa5ac2123615cfd36ccc01a8a6857d97d3d05e2b4f500b14fc7650f9e856aec0a46c3f7c733e2e5a1d476a4fc9c17c13f447524b129bdcb426c3c3a495a8c7c72c687899675123ac59cd8bebaddb0e5cf9fb860179b3541fcbb466540f4f8222d30072a5bde3ce7b8f2037827e18f7787d665"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "03",
+      "ciphertext": "ffa8509a6ca3159d71b535216fc964e0"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e65",
+      "ciphertext": "74c9a8155e69077e778d348f88a99a54"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c",
+      "ciphertext": "77121a18db28ed39bcb781211244119ff9882ade6f1b63859180ecdcddd0a093"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c73",
+      "ciphertext": "77121a18db28ed39bcb781211244119fa2faad35f9e345b9d8b508a89d462b16"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f",
+      "ciphertext": "77121a18db28ed39bcb781211244119fec3f7795afae36c062766c983e0be5d2b2b9cba18407d20dd67b27ce0e97b557bb3499827f91812659bb308641b31086577d91e82ea14cce28af0dc856ad98d4261930cb69c66d42777354bac8a73a532ad84e4e2ac252bd2a563bdf285319daa2ec0ffc555da5ba3dacf00ed1d0c97cd44cba093861f9b04bc2f4ca49ce00b6935a5847a237a9aa548fbd12c99e0e36"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "03",
+      "ciphertext": "d86ca3cc6ed548bae1903a004bce9373"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e65",
+      "ciphertext": "2b22d8a4f871977d9fb473a644b80035"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c",
+      "ciphertext": "77871916eccdd76923c3f5714a59b00d0ba41b357ef617fd421d3d9d464bbf03"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c73",
+      "ciphertext": "77871916eccdd76923c3f5714a59b00debaf7ed24036dd8eb6aa106670770adc"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "030a11181f262d343b424950575e656c737a81888f969da4abb2b9c0c7ced5dce3eaf1f8ff060d141b222930373e454c535a61686f767d848b9299a0a7aeb5bcc3cad1d8dfe6edf4fb020910171e252c333a41484f565d646b727980878e959ca3aab1b8bfc6cdd4dbe2e9f0f7fe050c131a21282f363d444b525960676e757c838a91989fa6adb4bbc2c9d0d7dee5ecf3fa01080f",
+      "ciphertext": "77871916eccdd76923c3f5714a59b00d3b5c2fa8b258f277b421d143d5cb89eb5ace9c56ef4bc78be34e4d324b8095c2fb800c77c44643d5ae0c557505b15f792c241f9eb6ce5b7e59097bb3044d24d4a4a2894b6a4a359a1838ca981d113dcc00fa1f0c46abebcaefcbeeef29ac7891ba556907b5ed8295eecffdfb3296a9750eda6d8825249d830a4ce320a13ec440ea452b81d3e1dcdd019cc957ccd81f46"
+    }
+  ]
+}

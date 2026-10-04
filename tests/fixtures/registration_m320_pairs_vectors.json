@@ -1,0 +1,113 @@
+{
+  "image_sha256": "0900cac89f75fc4f75279c708785bf2c7a03c228301a8e75ce62f93e3ad88488",
+  "source": "original 2fc910 VM; cJSON duplicates retained, append material observed",
+  "context": {
+    "appkey": "00000000-1111-2222-3333-444444444444",
+    "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "cipher_flag": 186,
+    "sdk_flag": 1,
+    "launch_seconds": 1700000000,
+    "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+  },
+  "vectors": [
+    {
+      "name": "duplicate_status",
+      "pairs": [
+        [
+          "m307",
+          ""
+        ],
+        [
+          "m307",
+          "{}"
+        ]
+      ],
+      "native_material": "m307{}m307",
+      "native_m320": "1117718577"
+    },
+    {
+      "name": "old_checksum_is_material",
+      "pairs": [
+        [
+          "m320",
+          ""
+        ],
+        [
+          "m307",
+          "{}"
+        ]
+      ],
+      "native_material": "m307{}m320",
+      "native_m320": "1157040367"
+    },
+    {
+      "name": "three_equal_keys",
+      "pairs": [
+        [
+          "m307",
+          "a"
+        ],
+        [
+          "m307",
+          "b"
+        ],
+        [
+          "m307",
+          "c"
+        ]
+      ],
+      "native_material": "m307cm307bm307a",
+      "native_m320": "1150617830"
+    },
+    {
+      "name": "interleaved_duplicates",
+      "pairs": [
+        [
+          "m307",
+          "a"
+        ],
+        [
+          "m1",
+          "z"
+        ],
+        [
+          "m307",
+          "b"
+        ],
+        [
+          "m2",
+          "y"
+        ],
+        [
+          "m307",
+          "c"
+        ]
+      ],
+      "native_material": "m1zm2ym307cm307bm307a",
+      "native_m320": "977995535"
+    },
+    {
+      "name": "four_equal_keys",
+      "pairs": [
+        [
+          "m307",
+          "a"
+        ],
+        [
+          "m307",
+          "b"
+        ],
+        [
+          "m307",
+          "c"
+        ],
+        [
+          "m307",
+          "d"
+        ]
+      ],
+      "native_material": "m307dm307cm307bm307a",
+      "native_m320": "1166411793"
+    }
+  ]
+}

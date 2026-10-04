@@ -1,0 +1,11 @@
+{
+  "host": "127.0.0.1",
+  "port": 3306,
+  "user": "keeta",
+  "password": "CHANGE_ME",
+  "database": "keeta",
+  "charset": "utf8mb4",
+  "connect_timeout": 8,
+  "read_timeout": 30,
+  "write_timeout": 30
+}

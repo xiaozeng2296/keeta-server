@@ -1,0 +1,34 @@
+# Copy to .private/clash-node-pool/config.yaml, mode 0600.
+# Use an installed Mihomo core supporting listeners. Fill actual nodes locally.
+allow-lan: false
+bind-address: 127.0.0.1
+mode: rule
+log-level: warning
+external-controller: 127.0.0.1:19090
+secret: CHANGE_ME
+proxies:
+  - name: SG01
+    type: http
+    server: proxy.example.invalid
+    port: 8080
+    username: CHANGE_ME
+    password: CHANGE_ME
+  - name: SG02
+    type: http
+    server: proxy2.example.invalid
+    port: 8080
+    username: CHANGE_ME
+    password: CHANGE_ME
+listeners:
+  - name: sg01-listener
+    type: mixed
+    listen: 127.0.0.1
+    port: 18170
+    proxy: SG01
+  - name: sg02-listener
+    type: mixed
+    listen: 127.0.0.1
+    port: 18171
+    proxy: SG02
+rules:
+  - MATCH,REJECT

@@ -1,0 +1,13 @@
+[Unit]
+Description=Keeta MySQL collector
+After=network.target
+[Service]
+Type=simple
+User=keeta
+WorkingDirectory=/opt/keeta-server
+ExecStart=/opt/keeta-server/.venv/bin/python -m farm.executor
+UMask=0077
+Restart=no
+TimeoutStopSec=120
+[Install]
+WantedBy=multi-user.target

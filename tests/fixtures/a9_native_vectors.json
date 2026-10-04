@@ -1,0 +1,74 @@
+{
+  "provenance": {
+    "generator": "tools/a9_native_verify.py",
+    "image_sha256": "0900cac89f75fc4f75279c708785bf2c7a03c228301a8e75ce62f93e3ad88488",
+    "execution": "Unmodified ARM64 instructions in Unicorn; no device or network access",
+    "functions_rva": {
+      "q_mds_init": "0x39361c",
+      "schedule": "0x3937f0",
+      "encrypt_block": "0x3941ec",
+      "decrypt_block": "0x394a90"
+    },
+    "limitations": [
+      "CBC uses harness chaining of native block calls; SDK VM CBC wrapper was not executed.",
+      "Key/provider derivation and a9 envelope are outside this verifier.",
+      "Only 128-bit keys and the analysed Mach-O build are covered."
+    ]
+  },
+  "vectors": [
+    {
+      "mode": "twofish",
+      "key": "00000000000000000000000000000000",
+      "plaintext": "00000000000000000000000000000000",
+      "ciphertext": "9f589f5cf6122c32b6bfec2f2ae8c35a",
+      "schedule_sha256": "b4844877f416f1a3c118ba9a1ec9da0729d1f847e6e74cc5404308cd4d09c2e9",
+      "cbc_plaintext": "a9ded607a9392c30723bfb82cbb1a24f",
+      "cbc_ciphertext": "ba34ea0673ec351a0d362a28632e086b"
+    },
+    {
+      "mode": "twofish",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "000102030405060708090a0b0c0d0e0f",
+      "ciphertext": "9fb63337151be9c71306d159ea7afaa4",
+      "schedule_sha256": "d7959c4dd66155122e7933f42d60b9113a8add27818a596bdc4d35d274d1f531",
+      "cbc_plaintext": "f78801854ae6c4a825837cfad22807e5afe50f7fe3f30ded767d0537b6c5c7df",
+      "cbc_ciphertext": "7fa72a54ba9c94cf46845950e67a642c9512f9ea7cd57cbb2b7a891164539be3"
+    },
+    {
+      "mode": "twofish",
+      "key": "8d7699d38a4629ab1d2d6291a492a7cd",
+      "plaintext": "0bba2b02ba1f14b4fe8e263c579a5c6f",
+      "ciphertext": "f68d7cb083c7f44eb90d8676bc06fda6",
+      "schedule_sha256": "af402f2d662b7accac84d780e507ceff06ad0399ed789518a6bc6ddb6ff72e7f",
+      "cbc_plaintext": "59fa42a55b3157180d12f60ffc4c7b52872f5316614cbc636295300644987a6308cb93a1a5643c997e3b0b335a0f7c68",
+      "cbc_ciphertext": "2a39c006dfceb620e8c8f7e4f358e1b240bd9ac7c046f7f7f4c7855a3a5720ae66f2f5b8fe30b9de7d1ada15757d1510"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "00000000000000000000000000000000",
+      "plaintext": "00000000000000000000000000000000",
+      "ciphertext": "7b48a6dae8c80c5ddb1ca524c470bf12",
+      "schedule_sha256": "1341cb3fab9d6968d34dbb21f26bfd06103375b799a660be3b0c695a6f3f23c6",
+      "cbc_plaintext": "a9ded607a9392c30723bfb82cbb1a24f",
+      "cbc_ciphertext": "af2e39d8b6c9d637d413c49f77f3ed30"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "000102030405060708090a0b0c0d0e0f",
+      "ciphertext": "dbe3eada17894000cd32cb147f058662",
+      "schedule_sha256": "36a18d3db434192dcb523f0c10ddf74bb2a156f61d24ebb43748f46d9ab47546",
+      "cbc_plaintext": "f78801854ae6c4a825837cfad22807e5afe50f7fe3f30ded767d0537b6c5c7df",
+      "cbc_ciphertext": "4c7f422a15d921ffc1b8f0ed4ee39609a23018cec4ce9435dace455a2eec514e"
+    },
+    {
+      "mode": "twofish-mod",
+      "key": "8d7699d38a4629ab1d2d6291a492a7cd",
+      "plaintext": "0bba2b02ba1f14b4fe8e263c579a5c6f",
+      "ciphertext": "b8280c4f33486a75e571b89515940f28",
+      "schedule_sha256": "ebba98b0cd235e2b46c7b7f92ba0fab0e2135e8a77b222e15cdd6788a9538de5",
+      "cbc_plaintext": "59fa42a55b3157180d12f60ffc4c7b52872f5316614cbc636295300644987a6308cb93a1a5643c997e3b0b335a0f7c68",
+      "cbc_ciphertext": "efa9aae150096fc0a0d3afdc6d87b8348531ec05f3b52521b811e598b7c526d6ac6b21efb4024ce13dbd10fad892d634"
+    }
+  ]
+}

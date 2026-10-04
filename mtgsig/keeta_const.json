@@ -1,0 +1,7 @@
+{
+  "embeddedA0_eff": "DjSTDNff0lwjf8pPLdbLPXEj1EFd28HcOtzG",
+  "k1": "c6bd5eb32be214c17fd736b07dab2058",
+  "k2buf_sample": "e8d5a00569deca570d56dfcb182ddded",
+  "salt": "7f46356f00495ac56932455bdb70b99c",
+  "note": "k1/M 与国内共享; embeddedA0/salt/T/tableA/tableB 为 keeta 专属; k2buf=salt^ks(a1) 按设备算; v73(a9)待dump"
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Keeta isolated proxy core
+After=network.target
+[Service]
+Type=simple
+User=keeta
+WorkingDirectory=/opt/keeta-server
+ExecStart=/opt/keeta-server/.venv/bin/python -m farm.proxy_service --run
+UMask=0077
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,37 @@
+{
+  "evidence": "Live productList acceptance through explicitly selected Clash proxy, 2026-09-29. No token, cookie, device ID, request body, or full signature included.",
+  "vectors": [
+    {
+      "prefix_hex": "727afc392ff36bd9",
+      "mask_hex": "e8d5a00569deca570d56dfcb182ddded",
+      "sign_sequence": 255,
+      "tail_hex": "27bcc4af137e0272",
+      "http_status": 200,
+      "business_code": 0
+    },
+    {
+      "prefix_hex": "87f2cb0800703419",
+      "mask_hex": "e8d5a00569deca570d56dfcb182ddded",
+      "sign_sequence": 256,
+      "tail_hex": "fb76121b0d60aeaa",
+      "http_status": 200,
+      "business_code": 0
+    },
+    {
+      "prefix_hex": "aae2312e60fe1b3a",
+      "mask_hex": "e8d5a00569deca570d56dfcb182ddded",
+      "sign_sequence": 65536,
+      "tail_hex": "93782c6e4b26022b",
+      "http_status": 200,
+      "business_code": 0
+    },
+    {
+      "prefix_hex": "bc294096d2780ee6",
+      "mask_hex": "e8d5a00569deca570d56dfcb182ddded",
+      "sign_sequence": 16777216,
+      "tail_hex": "d7b2f298402c36b8",
+      "http_status": 200,
+      "business_code": 0
+    }
+  ]
+}

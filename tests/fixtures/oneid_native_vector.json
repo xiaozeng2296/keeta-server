@@ -1,0 +1,7 @@
+{
+  "uuid": "00112233-4455-6677-8899-AABBCCDDEEFF",
+  "generated": "0011223344556639778899aabbccddeeff655ffc6ac5d4f662",
+  "image_sha256": "0900cac89f75fc4f75279c708785bf2c7a03c228301a8e75ce62f93e3ad88488",
+  "timestamp_text": "1790616716.868527",
+  "source": "synthetic native ONIUtils.createLocalIDFormatIdentifierWithUUIDString:"
+}

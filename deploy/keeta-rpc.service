@@ -1,0 +1,14 @@
+[Unit]
+Description=Keeta signing RPC
+After=network.target
+[Service]
+Type=simple
+User=keeta
+WorkingDirectory=/opt/keeta-server
+EnvironmentFile=/opt/keeta-server/.private/rpc.env
+ExecStart=/opt/keeta-server/.venv/bin/python keeta_rpc.py --host 127.0.0.1 --port 8799
+UMask=0077
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

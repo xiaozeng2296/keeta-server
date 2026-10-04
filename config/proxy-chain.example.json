@@ -1,0 +1,6 @@
+{
+  "listen": {"host": "127.0.0.1", "port": 19097},
+  "first_proxy": {"host": "127.0.0.1", "port": 7897},
+  "remote_proxy": {"host": "proxy.example.invalid", "port": 8080, "username": "CHANGE_ME", "password": "CHANGE_ME"},
+  "connect_timeout_seconds": 10
+}

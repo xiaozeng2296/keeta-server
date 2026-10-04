@@ -1,0 +1,8 @@
+{
+  "routes": {
+    "ipfoxy": {"proxy": "http://CHANGE_ME:CHANGE_ME@proxy.example.invalid:8080", "front_proxy": "http://127.0.0.1:18170", "refresh_ipfoxy": false},
+    "clash-sg01": {"proxy": "http://127.0.0.1:18170", "front_proxy": null, "refresh_ipfoxy": false}
+  },
+  "per_route_concurrency": {"ipfoxy": 1, "clash-sg01": 2},
+  "bindings": {"1": "ipfoxy", "2": "clash-sg01", "3": "clash-sg01"}
+}

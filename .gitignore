@@ -1,0 +1,29 @@
+# Private runtime state and generated output
+.private/
+.venv/
+.env
+.env.*
+*.key
+*.pem
+*.sqlite3*
+*.db
+*.log
+*.chls*
+*.pcap*
+*.xlsx
+*.zip
+*.tar.gz
+__pycache__/
+*.py[cod]
+.DS_Store
+exports/
+workspace/
+build/
+dist/
+*.egg-info/
+.rpc-deploy/
+# Configuration templates belong under config; actual files under .private.
+rpc/deploy.json
+accounts.json
+login_state.json
+mail.txt

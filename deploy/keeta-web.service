@@ -1,0 +1,13 @@
+[Unit]
+Description=Keeta control panel
+After=network.target
+[Service]
+Type=simple
+User=keeta
+WorkingDirectory=/opt/keeta-server
+ExecStart=/opt/keeta-server/.venv/bin/python -m farm.panel --no-worker --port 8788
+UMask=0077
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2533 @@
+{
+  "date": "2026-10-01 America/Los_Angeles",
+  "sources": [
+    {
+      "name": "从app初次打开到登录被拦截.chlsj",
+      "sha256": "eb998589abd62528099d16b2ddec1184b70f6e28175fc4969c104e2ec4ac9102",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 20,
+          "x0": 2,
+          "app": "3.12.401",
+          "sdk": "5.21.10",
+          "signing_profile": "default",
+          "a9_profile": "default",
+          "a9_mode": "twofish-mod",
+          "count": 65
+        },
+        {
+          "a0": null,
+          "a3": null,
+          "x0": 4,
+          "app": null,
+          "sdk": null,
+          "signing_profile": null,
+          "a9_profile": null,
+          "a9_mode": null,
+          "count": 2
+        }
+      ],
+      "a2_match": 65,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "发送验证码并成功登录.chlsj",
+      "sha256": "6967f7cce33e723aeaa191cb24e4971af6fa265f6e38e6ae3b91bec100cc8e5f",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 20,
+          "x0": 2,
+          "app": "3.12.401",
+          "sdk": "5.21.10",
+          "signing_profile": "default",
+          "a9_profile": "default",
+          "a9_mode": "aes",
+          "count": 26
+        },
+        {
+          "a0": null,
+          "a3": null,
+          "x0": 4,
+          "app": null,
+          "sdk": null,
+          "signing_profile": null,
+          "a9_profile": null,
+          "a9_mode": null,
+          "count": 1
+        }
+      ],
+      "a2_match": 26,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "完整版新设备注册登录.chlsj",
+      "sha256": "5f218afcfe01a3a1acedee5938753ccf2528e4d2d8603c26553c03d39153013a",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 20,
+          "x0": 2,
+          "app": "3.12.401",
+          "sdk": "5.21.10",
+          "signing_profile": "default",
+          "a9_profile": "default",
+          "a9_mode": "twofish",
+          "count": 93
+        },
+        {
+          "a0": null,
+          "a3": null,
+          "x0": 4,
+          "app": null,
+          "sdk": null,
+          "signing_profile": null,
+          "a9_profile": null,
+          "a9_mode": null,
+          "count": 1
+        }
+      ],
+      "a2_match": 93,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "店铺以及菜品详情和店铺详情.chlsj",
+      "sha256": "96ee1acaf6620bf103b3a2878fa837c5d5afce2916aa378a896fa0cf90868a20",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 25,
+          "x0": 2,
+          "app": "3.12.401",
+          "sdk": "5.21.10",
+          "signing_profile": "legacy",
+          "a9_profile": "legacy",
+          "a9_mode": "twofish-mod",
+          "count": 11
+        }
+      ],
+      "a2_match": 11,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "手动触发采集店铺几乎所有菜品以及子菜品.chlsj",
+      "sha256": "4cccab18ed45b786bbd09b642bf1c26555685741746afecece48107f9cfad108",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 25,
+          "x0": 2,
+          "app": "3.12.500",
+          "sdk": "5.21.10",
+          "signing_profile": "legacy",
+          "a9_profile": "legacy",
+          "a9_mode": "twofish",
+          "count": 119
+        }
+      ],
+      "a2_match": 119,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "新机之后尝试登录.chlsj",
+      "sha256": "eb97148df243d6a16855914d959f707eaa9086256ca903bcc44bd17411dcc1d0",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 20,
+          "x0": 2,
+          "app": "3.12.401",
+          "sdk": "5.21.10",
+          "signing_profile": "default",
+          "a9_profile": "default",
+          "a9_mode": "twofish",
+          "count": 73
+        }
+      ],
+      "a2_match": 73,
+      "a2_mismatch": 0
+    },
+    {
+      "name": "续查看菜品详情.chlsj",
+      "sha256": "bf239b56891a83fd3d7b44bc2d1a1847f55e0c14228665b48b2323400398ebe3",
+      "groups": [
+        {
+          "a0": "2.5",
+          "a3": 25,
+          "x0": 2,
+          "app": "3.12.500",
+          "sdk": "5.21.10",
+          "signing_profile": "legacy",
+          "a9_profile": "legacy",
+          "a9_mode": "twofish",
+          "count": 179
+        }
+      ],
+      "a2_match": 179,
+      "a2_mismatch": 0
+    }
+  ],
+  "checks": {
+    "a2_full": {
+      "true": 566
+    },
+    "a5_decode": {
+      "true": 566
+    },
+    "a5_roundtrip": {
+      "true": 566
+    },
+    "a9_decode": {
+      "true": 566
+    },
+    "a9_roundtrip": {
+      "true": 566
+    },
+    "layout_supported": {
+      "true": 566,
+      "false": 4
+    }
+  },
+  "sample_count": 570,
+  "native_layout_count": 566,
+  "other_layout_count": 4,
+  "native_probe": {
+    "status": "native_sign_and_startup_verified",
+    "sessions": [
+      {
+        "source_sha256": "98bc8bd8a9bdfb19f36ab8613193959266019e4885710c5177587d2f6841d96b",
+        "sample_count": 3,
+        "metadata": {
+          "bundle_id": "com.sankuai.sailor.ifooddelivery",
+          "app_version": "3.12.500",
+          "build": "18565",
+          "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+          "system_version": "16.0.2",
+          "frida_version": "16.1.4",
+          "arch": "arm64"
+        },
+        "checks": {
+          "a5_decode": {
+            "true": 3
+          },
+          "a5_roundtrip": {
+            "true": 3
+          },
+          "a9_decode": {
+            "true": 3
+          },
+          "a9_roundtrip": {
+            "true": 3
+          },
+          "a2_full": {
+            "true": 3
+          }
+        },
+        "constants": [
+          {
+            "a0": "2.5",
+            "a3": 20,
+            "a6": 0,
+            "x0": 2
+          }
+        ],
+        "signing_profile": [
+          "default"
+        ],
+        "a9_profile": [
+          "default"
+        ],
+        "a9_mode": [
+          "aes"
+        ],
+        "sign_sequences": [
+          117,
+          118,
+          119
+        ],
+        "a10_session_values": [
+          245
+        ]
+      },
+      {
+        "source_sha256": "7d5e40f339783d5147fcdfe6eda0a17daa32d1bc99ba6e9c10c8d37bbc4b06bd",
+        "sample_count": 3,
+        "metadata": {
+          "bundle_id": "com.sankuai.sailor.ifooddelivery",
+          "app_version": "3.12.500",
+          "build": "18565",
+          "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+          "system_version": "16.0.2",
+          "frida_version": "16.1.4",
+          "arch": "arm64"
+        },
+        "checks": {
+          "a5_decode": {
+            "true": 3
+          },
+          "a5_roundtrip": {
+            "true": 3
+          },
+          "a9_decode": {
+            "true": 3
+          },
+          "a9_roundtrip": {
+            "true": 3
+          },
+          "a2_full": {
+            "true": 3
+          }
+        },
+        "constants": [
+          {
+            "a0": "2.5",
+            "a3": 25,
+            "a6": 0,
+            "x0": 2
+          }
+        ],
+        "signing_profile": [
+          "legacy"
+        ],
+        "a9_profile": [
+          "legacy"
+        ],
+        "a9_mode": [
+          "twofish-mod"
+        ],
+        "sign_sequences": [
+          29,
+          30,
+          31
+        ],
+        "a10_session_values": [
+          228
+        ]
+      }
+    ],
+    "startup_events": [
+      {
+        "kind": "a10_time",
+        "value": 1790906627,
+        "caller": "0x2f0ba4"
+      },
+      {
+        "kind": "a10_srand",
+        "value": 1790906627,
+        "caller": "0x2f0ba8"
+      },
+      {
+        "kind": "a10_rand",
+        "value": 636883637,
+        "caller": "0x2f0bac"
+      },
+      {
+        "kind": "a10_initial_store",
+        "value": 228
+      },
+      {
+        "kind": "a3_constructor",
+        "before": null,
+        "after": 20,
+        "accepted": null
+      },
+      {
+        "kind": "provider_config",
+        "before": 20,
+        "after": 25,
+        "accepted": 1
+      }
+    ],
+    "startup_source_sha256": "7df2e88a9b77304e05f8b9182e3a2ff5224a1a97247dc297e62d2813d8522836",
+    "provider_observation": {
+      "a3": 25,
+      "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+      "matching_native_shift": 0,
+      "legacy_effective_shift": 12,
+      "mask_matches_legacy": true
+    },
+    "limitations": [
+      "native probe signs without sending business requests",
+      "a3 config payload parser and individual a6 flags still under investigation"
+    ],
+    "final_validation": {
+      "sample_count": 14,
+      "checks": {
+        "layout_supported": {
+          "true": 14
+        },
+        "a5_decode": {
+          "true": 14
+        },
+        "a5_roundtrip": {
+          "true": 14
+        },
+        "a9_decode": {
+          "true": 14
+        },
+        "a9_roundtrip": {
+          "true": 14
+        },
+        "a2_full": {
+          "true": 14
+        }
+      },
+      "source_sha256": "8243c5a56b98a5aa79671f03e56e51be68b9ee31aa39117e9154d17f9e7dd393",
+      "latest_native_metadata": {
+        "bundle_id": "com.sankuai.sailor.ifooddelivery",
+        "app_version": "3.12.500",
+        "build": "18565",
+        "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+        "image_encryption": {
+          "offset": 35770368,
+          "size": 4096,
+          "cryptid": 1
+        },
+        "module": "Keeta",
+        "system_version": "16.0.2",
+        "frida_version": "16.1.4",
+        "arch": "arm64",
+        "pid": 73893,
+        "sdk_configuration": {
+          "key": "sakguard_dynamic_enc_salt_config_key",
+          "available": true,
+          "storage_class": "CIPStorageCenter",
+          "present": true,
+          "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+          "length": 88
+        }
+      },
+      "latest_trace": {
+        "format": "keeta-native-fields-v1",
+        "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+        "state": {
+          "provider_parameter": 25,
+          "status_bits": 0,
+          "session_value": 251
+        },
+        "events": [
+          {
+            "kind": "bridge",
+            "command": 8,
+            "caller": "0x36d480"
+          },
+          {
+            "kind": "field",
+            "key": "a0",
+            "value": "2.5",
+            "caller": "0x2f8104"
+          },
+          {
+            "kind": "field",
+            "key": "a3",
+            "value": 25,
+            "caller": "0x2f8134"
+          },
+          {
+            "kind": "field",
+            "key": "a6",
+            "value": 0,
+            "caller": "0x2f817c"
+          },
+          {
+            "kind": "field",
+            "key": "a10",
+            "value": "3,251",
+            "caller": "0x2f81dc"
+          },
+          {
+            "kind": "field",
+            "key": "x0",
+            "value": 2,
+            "caller": "0x2f81f4"
+          },
+          {
+            "kind": "bridge",
+            "command": 8,
+            "caller": "0x36d480"
+          },
+          {
+            "kind": "field",
+            "key": "a0",
+            "value": "2.5",
+            "caller": "0x2f8104"
+          },
+          {
+            "kind": "field",
+            "key": "a3",
+            "value": 25,
+            "caller": "0x2f8134"
+          },
+          {
+            "kind": "field",
+            "key": "a6",
+            "value": 0,
+            "caller": "0x2f817c"
+          },
+          {
+            "kind": "field",
+            "key": "a10",
+            "value": "3,251",
+            "caller": "0x2f81dc"
+          },
+          {
+            "kind": "field",
+            "key": "x0",
+            "value": 2,
+            "caller": "0x2f81f4"
+          },
+          {
+            "kind": "bridge",
+            "command": 8,
+            "caller": "0x36d480"
+          },
+          {
+            "kind": "field",
+            "key": "a0",
+            "value": "2.5",
+            "caller": "0x2f8104"
+          },
+          {
+            "kind": "field",
+            "key": "a3",
+            "value": 25,
+            "caller": "0x2f8134"
+          },
+          {
+            "kind": "field",
+            "key": "a6",
+            "value": 0,
+            "caller": "0x2f817c"
+          },
+          {
+            "kind": "field",
+            "key": "a10",
+            "value": "3,251",
+            "caller": "0x2f81dc"
+          },
+          {
+            "kind": "field",
+            "key": "x0",
+            "value": 2,
+            "caller": "0x2f81f4"
+          }
+        ]
+      },
+      "cli_exit_code": 0,
+      "requests_sent_by_tool": 0
+    },
+    "tests": {
+      "count": 32,
+      "result": "passed",
+      "modules": [
+        "tests.test_protocol_watch",
+        "tests.test_signing_profiles",
+        "tests.test_collection_refresh"
+      ],
+      "javascript_syntax": "passed"
+    },
+    "provider_input": {
+      "initialize_rva": "0x30c454",
+      "configure_rva": "0x30c490",
+      "reader_rva": "0x364f90",
+      "config_length": 88,
+      "decoded_length": 64,
+      "input_matches": true,
+      "config_sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+      "parameter_before": 20,
+      "parameter_after": 25,
+      "accepted": 1,
+      "storage_class": "CIPStorageCenter",
+      "source": {
+        "key": "sakguard_dynamic_enc_salt_config_key",
+        "class": "SAKGuardDCDeviceInfo",
+        "selectors": [
+          "sharedManager",
+          "storage",
+          "stringForKey:userDefaultsSuiteName:"
+        ]
+      },
+      "stored_value_matches_input": true,
+      "a1_matches_initializer": true
+    },
+    "timeout_validation": {
+      "operation": "attach",
+      "timeout_seconds": 3,
+      "cause_type": "OperationCancelledError",
+      "exit_code": 1
+    }
+  },
+  "installed": {
+    "bundle_id": "com.sankuai.sailor.ifooddelivery",
+    "app_version": "3.12.500",
+    "build": "18565",
+    "pid": 74387,
+    "checked_at": "2026-10-02T05:00:44.802457+00:00"
+  },
+  "store": {
+    "status": "same_version",
+    "installed": "3.12.500",
+    "store_version": "3.12.500",
+    "country": "br",
+    "released_at": "2026-09-28T05:16:23Z",
+    "track_url": "https://apps.apple.com/br/app/keeta-delivery-de-comida/id1662451643?uo=4",
+    "checked_url": "https://itunes.apple.com/lookup?bundleId=com.sankuai.sailor.ifooddelivery&country=br",
+    "checked_at": "2026-10-02T04:54:43.578224+00:00"
+  },
+  "updated_at": "2026-10-02T05:10:02.490999+00:00",
+  "provider_configuration_extension": {
+    "observed_at": "2026-10-02T03:11:25.318751+00:00",
+    "a1_source": {
+      "selectors": {
+        "4c9b8b0": "infoDictionary",
+        "4cafd60": "objectForKey:"
+      },
+      "use_bundle": 1,
+      "alternate_bundle": 0,
+      "getter_matches_signature": true,
+      "default_matches_signature": false,
+      "a1_sha256": "f7454e72f6a832af5c5677aa9e075b753d497417b64e088fbbbb20d172169f22",
+      "bundle_inputs": [
+        {
+          "key": "ak",
+          "present": true,
+          "matches_signature": true
+        },
+        {
+          "key": "akd",
+          "present": true,
+          "matches_signature": false
+        }
+      ]
+    },
+    "configuration": {
+      "key": "sakguard_dynamic_enc_salt_config_key",
+      "available": true,
+      "storage_class": "CIPStorageCenter",
+      "present": true,
+      "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+      "length": 88,
+      "parameter": 25,
+      "a1_shift": 0,
+      "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+      "decode_status": "decoded"
+    },
+    "parser_cases": [
+      {
+        "case": "stored",
+        "result": 1,
+        "parameter": 25,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "reserialized",
+        "result": 1,
+        "parameter": 25,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_24",
+        "result": 1,
+        "parameter": 24,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_20",
+        "result": 1,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_0",
+        "result": 1,
+        "parameter": 0,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_-1",
+        "result": 1,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_36",
+        "result": 1,
+        "parameter": 36,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "salt_one_byte",
+        "result": 1,
+        "parameter": 25,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "empty",
+        "result": 1,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "missing_parameter",
+        "result": 0,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "missing_salt",
+        "result": 0,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "parameter_text",
+        "result": 1,
+        "parameter": 0,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "short_salt",
+        "result": 0,
+        "parameter": 20,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      },
+      {
+        "case": "synthetic",
+        "result": 1,
+        "parameter": 24,
+        "singleton_unchanged": true,
+        "status_bits_unchanged": true
+      }
+    ],
+    "configuration_roundtrip": true,
+    "salt_matches_native_object": true,
+    "resource_validation": {
+      "checksum": "Adler-32",
+      "cases": [
+        {
+          "kind": "pic",
+          "case": "valid",
+          "result": 1,
+          "header_version": 123,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "pic",
+          "case": "wrong_magic",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "pic",
+          "case": "wrong_format",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "pic",
+          "case": "wrong_checksum",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "pic",
+          "case": "changed_payload",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "xbt",
+          "case": "valid",
+          "result": 1,
+          "header_version": 123,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "xbt",
+          "case": "wrong_magic",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "xbt",
+          "case": "wrong_format",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "xbt",
+          "case": "wrong_checksum",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        },
+        {
+          "kind": "xbt",
+          "case": "changed_payload",
+          "result": 0,
+          "header_version": -1,
+          "a6_unchanged": true
+        }
+      ]
+    },
+    "isolated_state_emulation": {
+      "entry_rva": "0x316b5c",
+      "source": "current-sdk-code.bin",
+      "cases": [
+        {
+          "object_present": false,
+          "internal_state": 0,
+          "initial_bits": 0,
+          "result": 0,
+          "final_bits": 0
+        },
+        {
+          "object_present": true,
+          "internal_state": 0,
+          "initial_bits": 0,
+          "result": 0,
+          "final_bits": 0
+        },
+        {
+          "object_present": true,
+          "internal_state": 8,
+          "initial_bits": 0,
+          "result": 1,
+          "final_bits": 3
+        },
+        {
+          "object_present": true,
+          "internal_state": 1803,
+          "initial_bits": 0,
+          "result": 0,
+          "final_bits": 0
+        },
+        {
+          "object_present": true,
+          "internal_state": 8,
+          "initial_bits": 64,
+          "result": 1,
+          "final_bits": 67
+        },
+        {
+          "object_present": false,
+          "internal_state": 8,
+          "initial_bits": 0,
+          "result": 0,
+          "final_bits": 0
+        }
+      ]
+    },
+    "sdk_resource_tags": {
+      "pic": 3928243038,
+      "xbt": 3928243038
+    },
+    "signature_sample_count": 5,
+    "signature_checks": {
+      "a2_full": {
+        "true": 5
+      },
+      "a5_decode": {
+        "true": 5
+      },
+      "a5_roundtrip": {
+        "true": 5
+      },
+      "a9_decode": {
+        "true": 5
+      },
+      "a9_roundtrip": {
+        "true": 5
+      },
+      "layout_supported": {
+        "true": 5
+      },
+      "stored_configuration_matches_a3": {
+        "true": 5
+      },
+      "stored_configuration_matches_a5": {
+        "true": 5
+      }
+    },
+    "unit_test_count": 45,
+    "unit_test_result": "passed",
+    "raw_sources": [
+      {
+        "name": "native-config-codec.json",
+        "sha256": "16fb5329d56d587001b9e6072709864607e664acef93db4052101e89b444dd31"
+      },
+      {
+        "name": "native-resource-tags.json",
+        "sha256": "65119e574846097385ea973c649e5e1227b440343814a73dc91d2a272c330776"
+      },
+      {
+        "name": "native-provider-final.json",
+        "sha256": "ccb0685e2fa54f11d2ef810533b7649898339149c3f892553d1f4cf87628a183"
+      },
+      {
+        "name": "provider-config-validation.json",
+        "sha256": "8e289d02d3717189a7894539c9f979408c719f9f66f7e09c14020a589ec6cf8e"
+      },
+      {
+        "name": "provider-config-synthetic.json",
+        "sha256": "572496229f2f862e4665022426605a3110feafca707e7a58d512ea1d42c44951"
+      },
+      {
+        "name": "provider-stored-config.json",
+        "sha256": "6e3112f08ca82028609c5859ffb52c80381df7d82ab98aa7dd913f7fb413f256"
+      },
+      {
+        "name": "provider-config-decoded.json",
+        "sha256": "3d208229badddaffd5fb707cddba3cfd93be200facd32ea8e6a57798fc81bf42"
+      },
+      {
+        "name": "provider-after-startup.json",
+        "sha256": "10a8b78bb7acef355f19dce96df6ff075c0fa8188e30ffafe40092362dae33db"
+      },
+      {
+        "name": "native-a1-source.json",
+        "sha256": "234fe8d67ad709fadffe0ddd1156ac5fdaa5d5ef81167271012171519607004b"
+      },
+      {
+        "name": "native-a1-source-summary.json",
+        "sha256": "8b21a4ee699507fa4c8d9af821160acbf6d2ed8f8f72674391de349edaf78085"
+      },
+      {
+        "name": "native-resource-header-validation.json",
+        "sha256": "2dfb77c925df30735e50ab79e336f4f015dc5095e1322274246077f7f2445b33"
+      },
+      {
+        "name": "a6-status-emulation.json",
+        "sha256": "3fd020d1e0a6386a272872a1726e668718366d39967db12f10014589389adbb3"
+      },
+      {
+        "name": "sdk-runtime-xrefs.json",
+        "sha256": "da916f11dbc5177fda341b81fd15e7e1565592fea70797e6358edcbd1ca76bd8"
+      },
+      {
+        "name": "sdk-config-writer-strings.json",
+        "sha256": "f89f64d51ef8e632e09add15c9a1d3d89340ae7c817b23fbad9b462baf7a5c0a"
+      },
+      {
+        "name": "current-sdk-code.bin",
+        "sha256": "d67140734a3a13588e697fe38df6d9f6d280c95b86023b4df7da01560aadf29c"
+      }
+    ],
+    "remaining": [
+      "Dynamic configuration delivery-to-activation timing is not yet observed.",
+      "The complete upstream meaning and writer enumeration of resource status/a6 are not yet established.",
+      "Three historical bio/info/report a2 mismatches remain; x0=4 uses an unsupported layout."
+    ]
+  },
+  "horn_and_team_binding_extension": {
+    "date": "2026-10-01 America/Los_Angeles",
+    "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+    "horn": {
+      "status": "review_required",
+      "sources": [
+        {
+          "name": "从app初次打开到登录被拦截.chlsj",
+          "sha256": "eb998589abd62528099d16b2ddec1184b70f6e28175fc4969c104e2ec4ac9102",
+          "native_signature_count": 65,
+          "untimed_signature_count": 0
+        },
+        {
+          "name": "新机之后尝试登录.chlsj",
+          "sha256": "eb97148df243d6a16855914d959f707eaa9086256ca903bcc44bd17411dcc1d0",
+          "native_signature_count": 73,
+          "untimed_signature_count": 0
+        },
+        {
+          "name": "完整版新设备注册登录.chlsj",
+          "sha256": "5f218afcfe01a3a1acedee5938753ccf2528e4d2d8603c26553c03d39153013a",
+          "native_signature_count": 93,
+          "untimed_signature_count": 0
+        }
+      ],
+      "events": [
+        {
+          "source": "从app初次打开到登录被拦截.chlsj",
+          "index": 166,
+          "type": "SAKGuard_Dynamic_Risk",
+          "http_status": 200,
+          "config_path": "$.SAKGuard_Dynamic_Risk.data.customer.sakguard_key_enc_salt",
+          "response_end": "2026-09-22T19:32:25.427000-07:00",
+          "decoded": true,
+          "configuration_sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+          "parameter": 25,
+          "a1_shift": 0,
+          "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+          "window_end": null,
+          "later_request_count": 17,
+          "later_a3_counts": {
+            "20": 17
+          },
+          "first_later_request": {
+            "index": 269,
+            "a3": 20,
+            "request_begin": "2026-09-22T19:32:25.514000-07:00"
+          },
+          "timing_complete": true,
+          "a3_differs_after_response": true
+        },
+        {
+          "source": "新机之后尝试登录.chlsj",
+          "index": 38,
+          "type": "SAKGuard_Dynamic_Risk",
+          "http_status": 200,
+          "config_path": "$.SAKGuard_Dynamic_Risk.data.customer.sakguard_key_enc_salt",
+          "response_end": "2026-09-27T01:07:30.989000-07:00",
+          "decoded": true,
+          "configuration_sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+          "parameter": 25,
+          "a1_shift": 0,
+          "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+          "window_end": null,
+          "later_request_count": 66,
+          "later_a3_counts": {
+            "20": 66
+          },
+          "first_later_request": {
+            "index": 94,
+            "a3": 20,
+            "request_begin": "2026-09-27T01:07:31.267000-07:00"
+          },
+          "timing_complete": true,
+          "a3_differs_after_response": true
+        },
+        {
+          "source": "完整版新设备注册登录.chlsj",
+          "index": 12,
+          "type": "SAKGuard_Dynamic_Risk",
+          "http_status": 200,
+          "config_path": "$.SAKGuard_Dynamic_Risk.data.customer.sakguard_key_enc_salt",
+          "response_end": "2026-09-28T20:19:30.346000-07:00",
+          "decoded": true,
+          "configuration_sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f",
+          "parameter": 25,
+          "a1_shift": 0,
+          "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+          "window_end": null,
+          "later_request_count": 83,
+          "later_a3_counts": {
+            "20": 83
+          },
+          "first_later_request": {
+            "index": 53,
+            "a3": 20,
+            "request_begin": "2026-09-28T20:19:30.519000-07:00"
+          },
+          "timing_complete": true,
+          "a3_differs_after_response": true
+        }
+      ],
+      "scope": "Capture response completion and request transmission only; storage writes and provider activation are not observed."
+    },
+    "native_callback": {
+      "block_invoke": "0x3679b8",
+      "dispatch_call": "0x367bc0",
+      "handler": "0x367d74",
+      "types": [
+        "SAKGuard_Dynamic_Risk",
+        "SAKGuard_Dynamic_Risk_Test"
+      ]
+    },
+    "a6_resource_binding": {
+      "status_writer": "0x31567c",
+      "status_write": "0x3156b4",
+      "guard": "0x314f40",
+      "input_builder": "0x3000c4",
+      "current_debug_bundle_override_is_nil": true,
+      "entitlement_key": "com.apple.developer.team-identifier",
+      "input_chain": "entitlements team identifier UTF-8 -> CC_MD5 -> uppercase 32-character hex",
+      "digest_chain": "standard SHA-256 -> observed bytewise add/xor transform -> lowercase 64-character hex",
+      "comparison": "PIC resource dictionary a3 (not mtgsig.a3)",
+      "status_assignment": "guard success -> S=0; failure -> S=8",
+      "downstream": "resource object present and S != 0x70b and S&8 -> a6 |= 3",
+      "verification": {
+        "team_from_active_entitlements_equals_md5_input": true,
+        "uppercase_md5_equals_guard_input": true,
+        "sha256_add_xor_matches_native_guard_digest": true,
+        "digest_hex_equals_pic_a3": true,
+        "guard_result": 1,
+        "a6_unchanged": true,
+        "status_unchanged": true,
+        "provider_unchanged": true,
+        "synthetic_vectors": 45,
+        "transform_provenance": "bytewise equivalent add/xor mapping fitted to 45 independent native inputs; original VM constants not yet extracted"
+      }
+    },
+    "post_observation_native": {
+      "samples": 1,
+      "checks": {
+        "a2_full": {
+          "true": 1
+        },
+        "a5_decode": {
+          "true": 1
+        },
+        "a5_roundtrip": {
+          "true": 1
+        },
+        "a9_decode": {
+          "true": 1
+        },
+        "a9_roundtrip": {
+          "true": 1
+        },
+        "layout_supported": {
+          "true": 1
+        },
+        "stored_configuration_matches_a3": {
+          "true": 1
+        },
+        "stored_configuration_matches_a5": {
+          "true": 1
+        }
+      },
+      "requests_sent_by_tool": 0
+    },
+    "unit_tests": {
+      "count": 53,
+      "result": "passed",
+      "new_timing_tests": 8,
+      "command": "python -m unittest tests.test_provider_config tests.test_protocol_watch tests.test_signing_profiles tests.test_collection_refresh tests.test_fullsign"
+    },
+    "private_raw_sources": [
+      {
+        "name": "native-guard-sources.json",
+        "sha256": "4d6ad0bf24f935a5cf6ec600049ee692fb2768fdd0f276c47e85f8ae9054287c"
+      },
+      {
+        "name": "captured-configuration-chain.json",
+        "sha256": "3d48de4dfaadcabd4536c3c624cbdcc50bf7024a6032b80d3aa6baf898023620"
+      },
+      {
+        "name": "horn-configuration-audit.json",
+        "sha256": "ba07b3cf84203bd6a7221ca5786f0b134136952a4fe0ffe82dfaaf8f8b1271c1"
+      },
+      {
+        "name": "native-resource-guard-values.json",
+        "sha256": "ecdde74d56be981fbea6b8eb57484f72a98976005f906c4ee2e15339b485a624"
+      },
+      {
+        "name": "native-resource-digest-stages.json",
+        "sha256": "09c014424a5c90f77f0caba13ecfd44d5f97d0aeea90c891875f09d1444824e2"
+      },
+      {
+        "name": "native-resource-digest-vectors.json",
+        "sha256": "98ea3f7e71113019a0ebb33b844acfd47256e1ff44a88580c6940977fc997bdb"
+      },
+      {
+        "name": "native-resource-digest-vectors-extra.json",
+        "sha256": "3543773b33abdb6919817b6431456998167f69dbb6cfebd491aa164d2028e40f"
+      },
+      {
+        "name": "digest-output-transform.json",
+        "sha256": "ac0ba3f311d20a013ad3f5382039b08c2f985e1c91d254a6c944fe5134d9c7b0"
+      },
+      {
+        "name": "native-resource-input-chain.json",
+        "sha256": "8193b98ff660631886435768f5646d9ccb8d8ae3b0de25e96f29cd9c2702f76d"
+      },
+      {
+        "name": "native-resource-team-binding.json",
+        "sha256": "dbc1111e3d336bd912d8cfeea31360fddc3dac4f6f477254146528c240ccb828"
+      },
+      {
+        "name": "resource-team-binding-verification.json",
+        "sha256": "9bae50e52339e288cf9c39a3a174a25a2bfce434559888b9829096cf13be58bb"
+      },
+      {
+        "name": "native-team-binding-final.json",
+        "sha256": "c82953dc121436fa10b0ffca43b402f520cdcbe4a028f6417c3c0e42b6b0043c"
+      },
+      {
+        "name": "native-team-binding-final-audit.json",
+        "sha256": "f6527b2bae8bd62276c59ad35a81c708e2d764d4d0c01a05e57b37ab78ae7599"
+      }
+    ],
+    "private_replay_scripts": [
+      {
+        "name": "read_guard_sources.py",
+        "sha256": "24bfc7e804e2415d7e3787d5cf1c61c825bd2129645d221e2a409794f3d495d2"
+      },
+      {
+        "name": "trace_captured_config.py",
+        "sha256": "285ea08b841c16733ea4ff1287765737ad5f0e6833293d30b7598bd7471def86"
+      },
+      {
+        "name": "trace_resource_guard_values.py",
+        "sha256": "1c721761c5fab7d3c7b289131fcfc4e2fe201b23595193a26a46b787b399ca1d"
+      },
+      {
+        "name": "trace_resource_digest_stages.py",
+        "sha256": "eed9c056224032ae4e319a5f2fc843d5e8c7b152ad32052fbe2e638955257cf2"
+      },
+      {
+        "name": "check_resource_digest.py",
+        "sha256": "604a94abce77a162afb5ea186ae263bc778f8af35956f8fc82e81bfb652e3fdd"
+      },
+      {
+        "name": "check_resource_digest_extra.py",
+        "sha256": "fceb964f0139379086ca297504b5370e65df7a1884ddf3c1294340685a09caf1"
+      },
+      {
+        "name": "trace_resource_input_chain.py",
+        "sha256": "457442c2ce8ef2d5fcf95b66f7707bab944008132a511a435cab21770a8fe09b"
+      },
+      {
+        "name": "trace_resource_team_binding.py",
+        "sha256": "a8e2bd74a4a5b9ffd37d30464bf7c337b38a4e8a3a821c6c04610f57bef527ee"
+      }
+    ],
+    "remaining": [
+      "No single normal callback-to-storage-to-provider activation trace yet; capture request times are not signature-generation times.",
+      "Equivalent digest transform validated on 45 synthetic vectors and one real binding input; original VM constants not extracted.",
+      "Complete a6 writer enumeration and unobserved branch semantics remain bounded to current evidence.",
+      "Three historical bio/info/report a2 mismatches and x0=4 layout remain outside verified native parity."
+    ]
+  },
+  "configuration_lifecycle_extension": {
+    "recorded_at": "2026-10-02T04:29:54.672935+00:00",
+    "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+    "refresh_with_304": {
+      "status": "no_complete_callback_write_observed",
+      "event_counts": {
+        "sdk_refresh_requested": 1,
+        "horn_result": 2
+      },
+      "linked_callback_writes": 0,
+      "active_provider_load_count": 0,
+      "unmatched_event_count": 0,
+      "horn_results": [
+        {
+          "error_code": null,
+          "http_status": 304,
+          "load_source": 4
+        }
+      ],
+      "initial_state": {
+        "provider_present": true,
+        "parameter": 25,
+        "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+        "a6": 0
+      },
+      "final_state": {
+        "provider_present": true,
+        "parameter": 25,
+        "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+        "a6": 0
+      },
+      "stored_configuration_matches_provider": true,
+      "refresh_requested": true,
+      "seconds": 15.034361834,
+      "scope": "Observed window only; a write function return is not proof of durable disk persistence."
+    },
+    "recovery_passive": {
+      "status": "no_complete_callback_write_observed",
+      "event_counts": {},
+      "linked_callback_writes": 0,
+      "active_provider_load_count": 0,
+      "unmatched_event_count": 0,
+      "horn_results": [],
+      "initial_state": {
+        "provider_present": true,
+        "parameter": 25,
+        "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+        "a6": 0
+      },
+      "final_state": {
+        "provider_present": true,
+        "parameter": 25,
+        "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+        "a6": 0
+      },
+      "stored_configuration_matches_provider": true,
+      "refresh_requested": false,
+      "seconds": 3.0334784580000003,
+      "scope": "Observed window only; a write function return is not proof of durable disk persistence."
+    },
+    "recovered_native_checks": {
+      "a2_full": {
+        "true": 1
+      },
+      "a5_decode": {
+        "true": 1
+      },
+      "a5_roundtrip": {
+        "true": 1
+      },
+      "a9_decode": {
+        "true": 1
+      },
+      "a9_roundtrip": {
+        "true": 1
+      },
+      "layout_supported": {
+        "true": 1
+      },
+      "stored_configuration_matches_a3": {
+        "true": 1
+      },
+      "stored_configuration_matches_a5": {
+        "true": 1
+      }
+    },
+    "recovery": {
+      "old_pid_exited": true,
+      "new_pid_observed": 74221,
+      "app_version": "3.12.500",
+      "build": "18565",
+      "a3": 25,
+      "a6": 0,
+      "a10_session_value": 51,
+      "attach_sign_detach_completed": true
+    },
+    "excluded_experiment": {
+      "name": "observe_horn_cache_delivery.py",
+      "disabled": true,
+      "crashed_pid": 73893,
+      "exception": "EXC_BAD_ACCESS / SIGSEGV",
+      "fault": "objc_retain",
+      "return_rva": "0x367b7c",
+      "async_caller_rva": "0x2b2d078",
+      "registered_block_signature": "v20@?0B8@\"NSString\"12",
+      "root_cause": "Unsafe callback reuse observed; ABI mismatch versus block transfer/lifetime is not established.",
+      "counts_as_configuration_success": false
+    },
+    "evidence": [
+      {
+        "name": "config-lifecycle-refresh-result.json",
+        "sha256": "ec47ff08dae50069ea6e7fc2de0b6a104d62e4eaff1f2b65a4f230398707888a"
+      },
+      {
+        "name": "lifecycle-recovery-passive.json",
+        "sha256": "4d75a8e718e47b9642b6f4e2ae2b5b82916559e2f3a62fff3f04f1b0792e1c33"
+      },
+      {
+        "name": "native-recovery-verified.json",
+        "sha256": "c2c999b8b3056755f7c2852eb8243325c7358d634137fddf69616b68dc1f58bf"
+      },
+      {
+        "name": "native-recovery-audit.json",
+        "sha256": "e1c7b81e35414b0a441b5405d191ecb78f66b6eb362b1b8f67409c84ff21a393"
+      },
+      {
+        "name": "device-recovery-current.json",
+        "sha256": "d813773e2e175d998dae0c1b26eedbd23643bcfca45d7d6d6be64f3498db6cec"
+      },
+      {
+        "name": "device-recovery-opened.json",
+        "sha256": "96bb32fcca8a84af58507d0ed6f7bff1c029017c6e6163f331ba0849804a007c"
+      },
+      {
+        "name": "cache-delivery-crash.ips",
+        "sha256": "f2ffeba6aa7fd305dee334f3bf7fa3b2c74e9b6fde9d19d0dbad650362acb996"
+      },
+      {
+        "name": "native-horn-callback-abi.json",
+        "sha256": "c98657de591e38410366d90ab25f482d2c7e266210e2684b39f96a2c675911e4"
+      },
+      {
+        "name": "read_horn_callback_abi.py",
+        "sha256": "3b75dd4ae24c3a86fa7b736e39185ceaaf5813f273185189fb0d7272fb39b382"
+      },
+      {
+        "name": "observe_horn_cache_delivery.py",
+        "sha256": "de942edd4793eb9da4fac99135663b9bd892d66cbfd5465442c36b8083dccfc1"
+      }
+    ],
+    "tool_snapshots": [
+      {
+        "path": "tools/protocol_watch.py",
+        "sha256": "9a0602e21510853aac3a5c5df2b5ae7233b58f8d1c696cf635e5933be7b092d6"
+      },
+      {
+        "path": "tools/protocol_lifecycle.js",
+        "sha256": "f6b44bce5a10bbff23ce50078b38b0b05a88a71317d88e7697e259fb92a64cc9"
+      },
+      {
+        "path": "tests/test_protocol_lifecycle.py",
+        "sha256": "cb189f35c42857eef78b625de36b3045f8931d94b310e5436000002312edad18"
+      }
+    ],
+    "validation": {
+      "related_unittest_count": 67,
+      "result": "passed",
+      "node_syntax_check": "passed",
+      "requests_sent_by_passive_tool": 0,
+      "sdk_refresh_request_count_in_304_trace": 1
+    }
+  },
+  "a2_body_boundary_extension": {
+    "recorded_at": "2026-10-02T04:29:54.672935+00:00",
+    "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+    "sdk_version": "5.21.10",
+    "signed_body_limit_bytes": 16200,
+    "encoding": "UTF-8 bytes, may end inside a multibyte character",
+    "canonical_and_payload_outside_body_limit": true,
+    "transmitted_body_truncated": false,
+    "native_copy_wrapper_rva": "0x2f094c",
+    "native_copy_return_rvas": [
+      "0x2f9f44",
+      "0x2f9f5c"
+    ],
+    "historical_sample_count": 570,
+    "historical_checks": {
+      "a2_full": {
+        "true": 566
+      },
+      "a5_decode": {
+        "true": 566
+      },
+      "a5_roundtrip": {
+        "true": 566
+      },
+      "a9_decode": {
+        "true": 566
+      },
+      "a9_roundtrip": {
+        "true": 566
+      },
+      "layout_supported": {
+        "true": 566,
+        "false": 4
+      }
+    },
+    "historical_sources": [
+      {
+        "name": "从app初次打开到登录被拦截.chlsj",
+        "sha256": "eb998589abd62528099d16b2ddec1184b70f6e28175fc4969c104e2ec4ac9102",
+        "rows": 67,
+        "a2_matches": 65,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 2
+      },
+      {
+        "name": "发送验证码并成功登录.chlsj",
+        "sha256": "6967f7cce33e723aeaa191cb24e4971af6fa265f6e38e6ae3b91bec100cc8e5f",
+        "rows": 27,
+        "a2_matches": 26,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 1
+      },
+      {
+        "name": "完整版新设备注册登录.chlsj",
+        "sha256": "5f218afcfe01a3a1acedee5938753ccf2528e4d2d8603c26553c03d39153013a",
+        "rows": 94,
+        "a2_matches": 93,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 1
+      },
+      {
+        "name": "店铺以及菜品详情和店铺详情.chlsj",
+        "sha256": "96ee1acaf6620bf103b3a2878fa837c5d5afce2916aa378a896fa0cf90868a20",
+        "rows": 11,
+        "a2_matches": 11,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 0
+      },
+      {
+        "name": "手动触发采集店铺几乎所有菜品以及子菜品.chlsj",
+        "sha256": "4cccab18ed45b786bbd09b642bf1c26555685741746afecece48107f9cfad108",
+        "rows": 119,
+        "a2_matches": 119,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 0
+      },
+      {
+        "name": "新机之后尝试登录.chlsj",
+        "sha256": "eb97148df243d6a16855914d959f707eaa9086256ca903bcc44bd17411dcc1d0",
+        "rows": 73,
+        "a2_matches": 73,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 0
+      },
+      {
+        "name": "续查看菜品详情.chlsj",
+        "sha256": "bf239b56891a83fd3d7b44bc2d1a1847f55e0c14228665b48b2323400398ebe3",
+        "rows": 179,
+        "a2_matches": 179,
+        "a2_mismatches": 0,
+        "unsupported_layouts": 0
+      }
+    ],
+    "independent_reference": {
+      "从app初次打开到登录被拦截.chlsj": {
+        "samples": 65,
+        "full_a2_match": 65,
+        "failed_capture_indices": []
+      },
+      "发送验证码并成功登录.chlsj": {
+        "samples": 26,
+        "full_a2_match": 26,
+        "failed_capture_indices": []
+      },
+      "完整版新设备注册登录.chlsj": {
+        "samples": 93,
+        "full_a2_match": 93,
+        "failed_capture_indices": []
+      },
+      "店铺以及菜品详情和店铺详情.chlsj": {
+        "samples": 11,
+        "full_a2_match": 11,
+        "failed_capture_indices": []
+      },
+      "手动触发采集店铺几乎所有菜品以及子菜品.chlsj": {
+        "samples": 119,
+        "full_a2_match": 119,
+        "failed_capture_indices": []
+      },
+      "新机之后尝试登录.chlsj": {
+        "samples": 73,
+        "full_a2_match": 73,
+        "failed_capture_indices": []
+      },
+      "续查看菜品详情.chlsj": {
+        "samples": 179,
+        "full_a2_match": 179,
+        "failed_capture_indices": []
+      }
+    },
+    "uninstrumented_native_sample_count": 7,
+    "uninstrumented_native_checks": {
+      "a2_full": {
+        "true": 7
+      },
+      "a5_decode": {
+        "true": 7
+      },
+      "a5_roundtrip": {
+        "true": 7
+      },
+      "a9_decode": {
+        "true": 7
+      },
+      "a9_roundtrip": {
+        "true": 7
+      },
+      "layout_supported": {
+        "true": 7
+      },
+      "stored_configuration_matches_a3": {
+        "true": 7
+      },
+      "stored_configuration_matches_a5": {
+        "true": 7
+      }
+    },
+    "observed_message_verification": {
+      "rows": [
+        {
+          "source": "native-largebody-bridge.json",
+          "case": null,
+          "request_body_bytes": 512,
+          "native_signed_body_bytes": 512,
+          "native_signed_body_sha256": "e5a99fd4308e4a386035e26bc58b7d6b4fa497204ce6d8298a49d823b61d8047",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-largebody-bridge.json",
+          "case": null,
+          "request_body_bytes": 32768,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "39ce02575cafb8ee19d3dcf68fbe70b877378f8b775de7f3035e687b0075da4e",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-largebody-bridge.json",
+          "case": null,
+          "request_body_bytes": 50688,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "76ef6de258b3cbea1da2bb3f23447663897e759cf23faf06c403729d98b9daef",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "ascii16199",
+          "request_body_bytes": 16199,
+          "native_signed_body_bytes": 16199,
+          "native_signed_body_sha256": "56cbfcb9a20a0a12ea39b46e4e1cdc3714f84135fe2e845733dde4313a7bad75",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "ascii16200",
+          "request_body_bytes": 16200,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "ec7001f242678952d119826a591eff554c01fe3184db88375b4254f0d8114a88",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "ascii16201",
+          "request_body_bytes": 16201,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "f955512af8c814fcc3e096b1b55c484c5eb7ea30afe20bec4f6cca89b910be2b",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "cjk18011",
+          "request_body_bytes": 18011,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "ce41faa272b6783cf6f983f81a1fb0aa86d7f89962dc5af4daa77669a7031c28",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "emoji20011",
+          "request_body_bytes": 20011,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "e13d3bf829f3aa8973fd391470af0d4d5fca386e9ac9449db6094be7ccd666c3",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "cjk_split",
+          "request_body_bytes": 16205,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "f22bea22318ce978a37a55e3af7e536b6362bad02f198bce60310039423305ad",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        },
+        {
+          "source": "native-body-boundaries.json",
+          "case": "emoji_split",
+          "request_body_bytes": 16206,
+          "native_signed_body_bytes": 16200,
+          "native_signed_body_sha256": "e84558e1addf32f1f7c6d9d35180655a505af5a0890e31bdf9dc61d099364d14",
+          "native_prefix_equals_utf8_first_16200": true,
+          "payload_copy_matches": true,
+          "full_a2_from_observed_message_matches": true
+        }
+      ],
+      "requests_sent_by_tool": 0
+    },
+    "validation": {
+      "related_unittest_count": 67,
+      "result": "passed",
+      "native_boundary_vectors": 7,
+      "requests_sent_by_tool": 0,
+      "service_acceptance_tested": false
+    },
+    "evidence": [
+      {
+        "name": "native-largebody-parity.json",
+        "sha256": "3de95a558732c6a4acdf4ba17e907f87216af77f93c3e545b12f28f7afe791ff"
+      },
+      {
+        "name": "native-largebody-audit.json",
+        "sha256": "471d904e42466b50b3895f85315ab230f3e60f807ad7c525df60e6cd8725a96a"
+      },
+      {
+        "name": "native-largebody-audit-fixed.json",
+        "sha256": "70f33e205b6615a3d25a183bbaeaf23e6f6a36ead7699b3499b3a1b629594063"
+      },
+      {
+        "name": "native-largebody-bridge.json",
+        "sha256": "e4535f261e1c4d7314ad9078140e98037d569af6d55598c7a1c1125c16c8d6c3"
+      },
+      {
+        "name": "native-body-boundaries.json",
+        "sha256": "1697b80de77a69177ca223d8c97cf4ca81f9871ba05557b7dfacc41e8af89e7a"
+      },
+      {
+        "name": "body-boundary-verification.json",
+        "sha256": "2081080aa886adbed5db6e62c9034fd307b8d7618a1e24ffe8d730ef741b00be"
+      },
+      {
+        "name": "all-captures-body-limit.json",
+        "sha256": "3b45a82f523ba14ec22e670c1fcbda5f50906ee7d6abe646dfc7a2b4cc0c6771"
+      },
+      {
+        "name": "check_largebody_native.py",
+        "sha256": "a18454fd5716434fe0cdf14596e8695a32533640e51d590e166eb3c366276ea3"
+      },
+      {
+        "name": "trace_largebody_bridge.py",
+        "sha256": "009a4cc5ac3a2e8666425d797cac899fa669d5b038e7c215d168b180a0f6a980"
+      }
+    ],
+    "implementation_snapshots": [
+      {
+        "path": "keeta_a2.py",
+        "sha256": "59477fa2113353a03891ed4ceb2fb6eaaa793e232620a2b8849445eec6dc3d78"
+      },
+      {
+        "path": "farm/fullsign.py",
+        "sha256": "d0105c3e98b5cf4500261b628318f7e7e3f7c3d6c0b1d79488b494567bdd3ebf"
+      },
+      {
+        "path": "keeta_sign_offline.py",
+        "sha256": "718c9d2c50ccbe8bed2c7c32913622c3508e78ec52da3ca230a9344304b6d8eb"
+      },
+      {
+        "path": "tools/verify_a2_pass2.py",
+        "sha256": "eefdc4878a957e84caa14915f12a915207d6308e730ebcb9c6ece85079d3187f"
+      },
+      {
+        "path": "tests/test_a2_message.py",
+        "sha256": "2a996fb85e67d1d19011423c82b27797ae3f5460b8dec441079bc10133f2547a"
+      }
+    ],
+    "supersedes": "Initial 563/566 a2 audit and three retained historical bio exceptions. Four x0=4 records remain unsupported."
+  },
+  "startup_lifecycle_extension": {
+    "recorded_at": "2026-10-02T05:04:33.062816+00:00",
+    "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+    "normal_startup": {
+      "observed_pid": 74387,
+      "summary": {
+        "status": "callback_and_storage_observed",
+        "event_counts": {
+          "storage_read": 1,
+          "provider_initialize_enter": 1,
+          "provider_configure_enter": 1,
+          "provider_configure_leave": 1,
+          "provider_initialize_leave": 1,
+          "horn_result": 3,
+          "callback_enter": 1,
+          "storage_write_enter": 1,
+          "storage_write_leave": 1,
+          "callback_leave": 1
+        },
+        "linked_callback_writes": 1,
+        "active_provider_load_count": 1,
+        "unmatched_event_count": 0,
+        "horn_results": [
+          {
+            "error_code": null,
+            "http_status": 304,
+            "load_source": 5
+          }
+        ],
+        "initial_state": {
+          "provider_present": false,
+          "parameter": null,
+          "salt_sha256": null,
+          "a6": 0
+        },
+        "final_state": {
+          "provider_present": true,
+          "parameter": 25,
+          "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+          "a6": 0
+        },
+        "stored_configuration_matches_provider": true,
+        "refresh_requested": false,
+        "seconds": 20.308699750000002,
+        "scope": "Observed window only; a write function return is not proof of durable disk persistence."
+      },
+      "dropped_events": 0,
+      "timeline": [
+        {
+          "relative_ms": 0,
+          "kind": "storage_read",
+          "configuration": {
+            "present": true,
+            "length": 88,
+            "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f"
+          },
+          "caller": "0x30e1ac"
+        },
+        {
+          "relative_ms": 0,
+          "kind": "provider_initialize_enter",
+          "configuration": {
+            "present": true,
+            "length": 88,
+            "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f"
+          },
+          "before": 20,
+          "active_provider": true,
+          "caller": "0x30e26c"
+        },
+        {
+          "relative_ms": 1,
+          "kind": "provider_configure_enter",
+          "configuration": {
+            "present": true,
+            "length": 88,
+            "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f"
+          },
+          "before": 20,
+          "active_provider": true,
+          "caller": "0x3ac04c"
+        },
+        {
+          "relative_ms": 1,
+          "kind": "provider_configure_leave",
+          "result": 1,
+          "after": 25,
+          "active_provider": true,
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          }
+        },
+        {
+          "relative_ms": 1,
+          "kind": "provider_initialize_leave",
+          "result": 0,
+          "after": 25,
+          "active_provider": true,
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          }
+        },
+        {
+          "relative_ms": 3541,
+          "kind": "horn_result",
+          "stage": "- applyConfigWithInfo:error:",
+          "type": "SAKGuard_Dynamic_Risk",
+          "info_class": "SAKHornParamsInfo",
+          "http_status": 304,
+          "load_source": 5,
+          "error_code": null
+        },
+        {
+          "relative_ms": 3541,
+          "kind": "horn_result",
+          "stage": "- checkApplyResultWithInfo:error:",
+          "type": "SAKGuard_Dynamic_Risk",
+          "info_class": "SAKHornParamsInfo",
+          "http_status": 304,
+          "load_source": 5,
+          "error_code": null
+        },
+        {
+          "relative_ms": 3542,
+          "kind": "horn_result",
+          "stage": "- applyResultWithInfo:error:",
+          "type": "SAKGuard_Dynamic_Risk",
+          "info_class": "SAKHornParamsInfo",
+          "http_status": 304,
+          "load_source": 5,
+          "error_code": null
+        },
+        {
+          "relative_ms": 3543,
+          "kind": "callback_enter",
+          "type": "SAKGuard_Dynamic_Risk",
+          "success": true,
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          }
+        },
+        {
+          "relative_ms": 3545,
+          "kind": "storage_write_enter",
+          "configuration": {
+            "present": true,
+            "length": 88,
+            "sha256": "f6c2238a3fc9ae512a66f5cb2390a5bcc6f3a94e63027469ca576a2e8d6a924f"
+          },
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          },
+          "caller": "0x368180"
+        },
+        {
+          "relative_ms": 3546,
+          "kind": "storage_write_leave",
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          }
+        },
+        {
+          "relative_ms": 3549,
+          "kind": "callback_leave",
+          "type": "SAKGuard_Dynamic_Risk",
+          "state": {
+            "provider_present": true,
+            "parameter": 25,
+            "salt_sha256": "6fa71bf428cf9749caf0e70e0a1b3e7b12293b19c09175d49715d08077591882",
+            "a6": 0
+          }
+        }
+      ],
+      "provider_load_preceded_callback": true,
+      "provider_reload_after_callback_observed": false,
+      "native_sample_count": 1,
+      "native_checks": {
+        "a2_full": {
+          "true": 1
+        },
+        "a5_decode": {
+          "true": 1
+        },
+        "a5_roundtrip": {
+          "true": 1
+        },
+        "a9_decode": {
+          "true": 1
+        },
+        "a9_roundtrip": {
+          "true": 1
+        },
+        "layout_supported": {
+          "true": 1
+        },
+        "stored_configuration_matches_a3": {
+          "true": 1
+        },
+        "stored_configuration_matches_a5": {
+          "true": 1
+        }
+      },
+      "detach_cleanup_failed": false,
+      "tool_requested_config_refresh": false,
+      "synthetic_requests_sent_by_tool": 0,
+      "app_background_network_possible": true
+    },
+    "http_304_observations": [
+      {
+        "path": "explicit_refresh",
+        "load_source": 4,
+        "callback_and_write_observed": false
+      },
+      {
+        "path": "normal_startup",
+        "load_source": 5,
+        "callback_and_write_observed": true
+      }
+    ],
+    "observer_failures_and_repairs": [
+      {
+        "report": "startup-configuration-lifecycle.json",
+        "pid": 74331,
+        "result": "process_terminated",
+        "termination": "OBJC code 1",
+        "operation": "start_lifecycle",
+        "evidence": "startup-observer-crash.ips",
+        "stack_observation": [
+          "NSObject methodSignatureForSelector:",
+          "NSBundle initWithPath:",
+          "NSBundle mainBundle"
+        ],
+        "repair": "Use pure Mach-O memory metadata for the startup UUID guard; postpone Foundation metadata until normal initialization.",
+        "recovered_native_evidence": "native-after-startup-recovery.json"
+      },
+      {
+        "report": "startup-configuration-observed.json",
+        "pid": 74366,
+        "result": "incomplete_observation",
+        "observer_errors": 4,
+        "repair": "Hash an explicitly allocated UTF-8 buffer using the computed byte length, instead of passing a bridged NSString.UTF8String value as a pointer."
+      }
+    ],
+    "a6_reference_scope": {
+      "format": "keeta-a6-direct-reference-inventory-v1",
+      "macho_uuid": "3fb544966dc03ccca41b9055fc509adf",
+      "source_sha256": "194747e820db2102408082b0670daa45fc066fb08e0606a341dc63896058130c",
+      "sdk_matches_live_snapshot": true,
+      "scanned_instructions": 13614607,
+      "skipped_encrypted_instructions": 1024,
+      "page_reference_count": 630,
+      "direct_a6_address_count": 14,
+      "all_recognized_direct_a6_addresses_within_sdk": true,
+      "limitations": [
+        "FairPlay range excluded",
+        "Computed or indirect pointer aliases are not exhaustively resolved"
+      ]
+    },
+    "validation": {
+      "python_tests": 67,
+      "javascript_cases": 4,
+      "result": "passed",
+      "recorded_at": "2026-10-02T05:03:27.263645+00:00",
+      "report": "completion-regression.json",
+      "service_acceptance_tested": false
+    },
+    "evidence": [
+      {
+        "name": "startup-configuration-complete.json",
+        "sha256": "5c593af40c1608ab8e886db4535e977998a1d5e16cccba86cd54f970daa12818"
+      },
+      {
+        "name": "startup-configuration-complete-native.json",
+        "sha256": "b7eb2e52a2920b143c5dbb504d25487e13d58be106458f553719b50ac25c4e21"
+      },
+      {
+        "name": "startup-configuration-complete-audit.json",
+        "sha256": "e7dcdfe49db294bde5311fd20112d6dfe1b1025ea0ae1b207dc1344e58707d5f"
+      },
+      {
+        "name": "startup-configuration-lifecycle.json",
+        "sha256": "1b12fe2e757f20d51ccb39f61e810ae57a5f9a5ad119f0c01f554b72995cf480"
+      },
+      {
+        "name": "startup-observer-crash.ips",
+        "sha256": "5ec3159cc3168b1c344b4eeb7ee33a2145b89e4316f8391efa9fc10b4ac30511"
+      },
+      {
+        "name": "device-after-startup-attempt.json",
+        "sha256": "12bc70005e133775f7f3b3d6262187267e0dc5b8f76588d1688c4b20ab38ae36"
+      },
+      {
+        "name": "native-after-startup-recovery.json",
+        "sha256": "a0b9f56fddec170454dedd9664c8020bceb66bfa5ec76750c359a6c093a821e4"
+      },
+      {
+        "name": "startup-configuration-observed.json",
+        "sha256": "f5ed572a9d7522c6fe22cbc6818589eb74afdf1c96a504d87b695679c3473406"
+      },
+      {
+        "name": "native-after-startup-lifecycle.json",
+        "sha256": "2dc7e48d58eabcd49e7217366f8eeda06917fba91a130d6e69cc92a363f969c2"
+      },
+      {
+        "name": "native-after-startup-lifecycle-audit.json",
+        "sha256": "b881d4a2994eb52ee619855f93248e39bdb7a678249401ce0b7e50812845e1c5"
+      },
+      {
+        "name": "observe_startup_configuration.py",
+        "sha256": "2847dad29aa9a446ae7eb48723250f660d8414a501444893d2fda2bb4b031bdd"
+      },
+      {
+        "name": "a6-main-image-references.json",
+        "sha256": "11b4855a75d633aa89633497a2d4c8f6fb49ae06c8251a7cec99a9d15e56c986"
+      },
+      {
+        "name": "scan_a6_image_references.py",
+        "sha256": "c182344b5e439bb349fe184e40434451e869d31c539932051c9ce3d623322e2b"
+      },
+      {
+        "name": "current-main-image.bin",
+        "sha256": "194747e820db2102408082b0670daa45fc066fb08e0606a341dc63896058130c"
+      },
+      {
+        "name": "current-sdk-code.bin",
+        "sha256": "d67140734a3a13588e697fe38df6d9f6d280c95b86023b4df7da01560aadf29c"
+      },
+      {
+        "name": "release-current-validation.json",
+        "sha256": "93cfce34c47e357c6db0a332c05da3dac3dec6dd9fefe607894696fa387ff02a"
+      },
+      {
+        "name": "device-completion-validation.json",
+        "sha256": "2e88a5b8919575b00e58a3ff66baa0f2ad14978d686d4bae412742ad6632e30c"
+      },
+      {
+        "name": "completion-regression.json",
+        "sha256": "b8b11b073b515ffdbc1a2b727d0a56938d1bbd7ce11823b553787b0de0170a95"
+      }
+    ],
+    "implementation_snapshots": [
+      {
+        "path": "tools/protocol_watch.py",
+        "sha256": "9a0602e21510853aac3a5c5df2b5ae7233b58f8d1c696cf635e5933be7b092d6"
+      },
+      {
+        "path": "tools/protocol_probe.js",
+        "sha256": "73890aae4dad23f5db1fac5d5b502dd174ca0513b33d5666981ace1f7287772a"
+      },
+      {
+        "path": "tools/protocol_lifecycle.js",
+        "sha256": "5cb016c83d6fe3d6835f3659c11914e8185850f7aaa153055446f26a78b4893c"
+      },
+      {
+        "path": "tools/protocol_trace.js",
+        "sha256": "46d9abaaac199bb2a2262f99427a8f3b6bfbc5fc10d790e823203d103cdda4a2"
+      },
+      {
+        "path": "mtgsig/provider_config.py",
+        "sha256": "96ecd48b4fd1f1a111a2914e31b686fff632e62f64593f552169112a8a5ec00c"
+      },
+      {
+        "path": "keeta_a2.py",
+        "sha256": "59477fa2113353a03891ed4ceb2fb6eaaa793e232620a2b8849445eec6dc3d78"
+      },
+      {
+        "path": "farm/fullsign.py",
+        "sha256": "d0105c3e98b5cf4500261b628318f7e7e3f7c3d6c0b1d79488b494567bdd3ebf"
+      },
+      {
+        "path": "tests/test_a2_message.py",
+        "sha256": "2a996fb85e67d1d19011423c82b27797ae3f5460b8dec441079bc10133f2547a"
+      },
+      {
+        "path": "tests/test_protocol_watch.py",
+        "sha256": "dba621c360b749268805d930f330b9d56b5ef824bae597d418cf3f5a5db696d4"
+      },
+      {
+        "path": "tests/test_protocol_lifecycle.py",
+        "sha256": "cb189f35c42857eef78b625de36b3045f8931d94b310e5436000002312edad18"
+      },
+      {
+        "path": "tests/test_protocol_probe.js",
+        "sha256": "2b3ee210924c406111cfb188a44c9c27bbba0b6efc790f83fc56f4074a8c65e6"
+      },
+      {
+        "path": "tests/test_provider_config.py",
+        "sha256": "996ab055d7bf9d87146d7923616998995e97dc41fc1942f3962f4fb23c771000"
+      },
+      {
+        "path": "tests/test_signing_profiles.py",
+        "sha256": "996a1ac393052d707a585305a8956b318b4c63658ee31f8dd6b99eeb7911b267"
+      },
+      {
+        "path": "tests/test_collection_refresh.py",
+        "sha256": "314f1a9bcd9062f0fc76777635bd4e6dde7b2fd932c26a9bd3bc3729eac4e708"
+      },
+      {
+        "path": "tests/test_fullsign.py",
+        "sha256": "89f2462c349d5f85b2a06fe8aa79541c0e2c7fc8b8dc1ef4e0655fcbe8e060f4"
+      }
+    ],
+    "limitations": [
+      "A completed storage write call is not proof of physical persistence.",
+      "The observed callback wrote the same configuration; no different-value hot activation was claimed.",
+      "Historical a3=20 sessions lack initialization traces, so their specific configuration omission cause cannot be reconstructed.",
+      "Source=5 is an observed numeric source on startup, not a recovered complete source enumeration.",
+      "Four x0=4 captures use another layout and remain unsupported.",
+      "The a6 scan excludes encrypted bytes and does not exhaust indirect/computed pointer aliases."
+    ]
+  },
+  "initial_audit_counts": {
+    "checks": {
+      "layout_supported": {
+        "true": 566,
+        "false": 4
+      },
+      "a5_decode": {
+        "true": 566
+      },
+      "a5_roundtrip": {
+        "true": 566
+      },
+      "a9_decode": {
+        "true": 566
+      },
+      "a9_roundtrip": {
+        "true": 566
+      },
+      "a2_full": {
+        "true": 563,
+        "false": 3
+      }
+    },
+    "sources": [
+      {
+        "name": "从app初次打开到登录被拦截.chlsj",
+        "a2_match": 64,
+        "a2_mismatch": 1
+      },
+      {
+        "name": "发送验证码并成功登录.chlsj",
+        "a2_match": 26,
+        "a2_mismatch": 0
+      },
+      {
+        "name": "完整版新设备注册登录.chlsj",
+        "a2_match": 92,
+        "a2_mismatch": 1
+      },
+      {
+        "name": "店铺以及菜品详情和店铺详情.chlsj",
+        "a2_match": 11,
+        "a2_mismatch": 0
+      },
+      {
+        "name": "手动触发采集店铺几乎所有菜品以及子菜品.chlsj",
+        "a2_match": 119,
+        "a2_mismatch": 0
+      },
+      {
+        "name": "新机之后尝试登录.chlsj",
+        "a2_match": 73,
+        "a2_mismatch": 0
+      },
+      {
+        "name": "续查看菜品详情.chlsj",
+        "a2_match": 178,
+        "a2_mismatch": 1
+      }
+    ],
+    "superseded_by": "a2_body_boundary_extension; original raw failure reports are retained"
+  },
+  "reading_order": {
+    "current_summary": "Top-level checks include the 16200-byte fix; startup_lifecycle_extension is the latest normal-startup evidence.",
+    "history": "Earlier extension remaining/limitations lists describe their original observation stages and are superseded where later extensions provide explicit evidence. Historical tool hashes are snapshots, not current-file checks.",
+    "scope": "566 native signatures verified; 4 x0=4 records unsupported. Local signature parity does not prove service acceptance."
+  },
+  "completion_audit": {
+    "checked_at": "2026-10-02T05:10:02.490999+00:00",
+    "scope": "Current observed Keeta native mtgsig a0-a10/x0 semantics, explanation of a3=20/25, and executable future-version detection/update workflow. Future unknown algorithms and full device collector recreation are not claimed.",
+    "requirements": [
+      {
+        "id": "a0",
+        "verified_meaning": "Native signature-format string 2.5",
+        "evidence": [
+          "native_probe.final_validation.latest_trace.events",
+          "startup-configuration-complete-native.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a1",
+        "verified_meaning": "Current main App ak configuration, used as original bytes in cryptographic derivation; not a device UUID",
+        "evidence": [
+          "native-a1-source-summary.json",
+          "native-a1-source.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a2",
+        "verified_meaning": "Full 16-byte request signature; only Body is capped at 16200 UTF-8 bytes",
+        "evidence": [
+          "all-captures-body-limit.json",
+          "native-largebody-bridge.json",
+          "body-boundary-verification.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a3",
+        "verified_meaning": "Provider parameter at +0x58, constructor default 20 and accepted configuration 25; not inferred from App version",
+        "evidence": [
+          "startup-configuration-complete.json",
+          "provider-config-validation.json",
+          "completion-cli-validation.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a4",
+        "verified_meaning": "Integer Unix seconds at signing time",
+        "evidence": [
+          "field-completion-evidence.json",
+          "startup-configuration-complete-native.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a5",
+        "verified_meaning": "Compressed/encrypted collection and runtime-state container; b2 is the per-sign sequence",
+        "evidence": [
+          "all-captures-body-limit.json",
+          "native-current.json",
+          "native-startup.json",
+          "completion-regression.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a6",
+        "verified_meaning": "Atomic cumulative SDK state bits, with documented resource/binding/nil-read branches",
+        "evidence": [
+          "a6-status-emulation.json",
+          "resource-team-binding-verification.json",
+          "a6-main-image-references.json"
+        ],
+        "boundary": "Direct-address scanning and known branches do not exhaust indirect aliases or all possible bits.",
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a7",
+        "verified_meaning": "Local XID candidate followed by server fingerprint info/report data.result",
+        "evidence": [
+          "field-completion-evidence.json",
+          "docs/archive/root/REGISTRATION_ID_STAGES.md"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a8",
+        "verified_meaning": "Local/cached DFP followed by validated server dfp, not a permanent account primary key",
+        "evidence": [
+          "field-completion-evidence.json",
+          "docs/archive/root/REGISTRATION_ID_STAGES.md"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a9",
+        "verified_meaning": "Encrypted cached SIUA profile; independent cipher/profile selection from a5",
+        "evidence": [
+          "all-captures-body-limit.json",
+          "completion-regression.json"
+        ],
+        "boundary": "Codec parity does not recreate all original device collection inputs.",
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "a10",
+        "verified_meaning": "Native session parameter 3,N; N=rand()%254+1 after srand(time(NULL)); not the per-sign sequence",
+        "evidence": [
+          "native_probe.startup_events",
+          "native-current.json",
+          "native-startup.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "x0",
+        "verified_meaning": "Current native assembly writes integer 2; observed x0=4 has a different unsupported field layout",
+        "evidence": [
+          "native_probe.final_validation.latest_trace.events",
+          "all-captures-body-limit.json"
+        ],
+        "boundary": "No universal x0 enumeration or x0=4 codec is claimed.",
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "version_discovery",
+        "verified_meaning": "Installed App/build and numeric regional store version checks; configuration and resource drift checked separately",
+        "evidence": [
+          "device-completion-validation.json",
+          "release-current-validation.json",
+          "completion-regression.json"
+        ],
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "protocol_change_detection",
+        "verified_meaning": "Audit and compare check signature fields/types, embedded schemas, versions, profile/mode, request shape and coverage, observed configuration and resource tags",
+        "evidence": [
+          "completion-cli-validation.json",
+          "completion-regression.json"
+        ],
+        "boundary": "Only the captured interface coverage is validated; missing requests/observations do not pass.",
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "reproducible_native_validation",
+        "verified_meaning": "Current native signing parity plus complete passive startup/configuration observations with build/instruction guards",
+        "evidence": [
+          "startup-configuration-complete.json",
+          "startup-configuration-complete-audit.json",
+          "completion-regression.json"
+        ],
+        "boundary": "The probe signs locally; service acceptance is a separate release gate.",
+        "status": "verified_with_stated_scope"
+      },
+      {
+        "id": "update_workflow_and_tools",
+        "verified_meaning": "Runnable device/release/audit/compare/native/config/observe-config commands; difference triage, supported profile update, tests, four-endpoint service acceptance and deployment/rollback sequence documented",
+        "evidence": [
+          "docs/PROTOCOL_UPDATE.md",
+          "tools/README.md",
+          "rpc/README.md",
+          "completion-cli-validation.json",
+          "completion-integrity.json"
+        ],
+        "boundary": "On-demand workflow; no background monitor, automatic App installation or production deployment created.",
+        "status": "verified_with_stated_scope"
+      }
+    ],
+    "historical_a3_boundary": "The same build produced both values and native initialization explains the default/configured branches; the particular unrecorded initialization failure of an old a3=20 session cannot be retroactively proved.",
+    "registration_and_time_recheck": {
+      "format": "keeta-field-completion-evidence-v1",
+      "registration_sources": [
+        {
+          "name": "从app初次打开到登录被拦截.chlsj",
+          "sha256": "eb998589abd62528099d16b2ddec1184b70f6e28175fc4969c104e2ec4ac9102",
+          "events": [
+            {
+              "flow_index": 96,
+              "endpoint": "/fingerprint/v1/info/report",
+              "field": "a7",
+              "response_field": "data.result",
+              "request_decodes_as_local_candidate": true,
+              "response_differs_from_request": true,
+              "timed_later_signature_match_count": 47,
+              "first_timed_later_match_index": 110
+            },
+            {
+              "flow_index": 100,
+              "endpoint": "/v5/sign",
+              "field": "a8",
+              "response_field": "data.dfp",
+              "request_decodes_as_local_candidate": false,
+              "response_differs_from_request": false,
+              "timed_later_signature_match_count": 47,
+              "first_timed_later_match_index": 110
+            }
+          ]
+        },
+        {
+          "name": "新机之后尝试登录.chlsj",
+          "sha256": "eb97148df243d6a16855914d959f707eaa9086256ca903bcc44bd17411dcc1d0",
+          "events": [
+            {
+              "flow_index": 16,
+              "endpoint": "/v5/sign",
+              "field": "a8",
+              "response_field": "data.dfp",
+              "request_decodes_as_local_candidate": true,
+              "response_differs_from_request": true,
+              "timed_later_signature_match_count": 70,
+              "first_timed_later_match_index": 41
+            },
+            {
+              "flow_index": 65,
+              "endpoint": "/fingerprint/v1/info/report",
+              "field": "a7",
+              "response_field": "data.result",
+              "request_decodes_as_local_candidate": true,
+              "response_differs_from_request": true,
+              "timed_later_signature_match_count": 66,
+              "first_timed_later_match_index": 94
+            }
+          ]
+        }
+      ],
+      "native_time": {
+        "sample": "startup-configuration-complete-native.json",
+        "a4_type": "integer",
+        "a4_seconds_after_first_startup_event": 20.836,
+        "within_observed_window_plus_signing_margin": true
+      },
+      "scope": "Read-only capture and native artifact verification; no requests sent. Values omitted."
+    },
+    "actual_cli_comparison": {
+      "audit_20_exit": 0,
+      "audit_25_exit": 0,
+      "compare_exit": 2,
+      "status": "review_required",
+      "changes": [
+        "constants",
+        "signing_profile",
+        "a9_profile",
+        "a9_mode",
+        "a5_embedded_schema",
+        "a9_embedded_schema"
+      ]
+    },
+    "integrity_before_final_report_additions": {
+      "verified_hash_count": 112,
+      "missing": [],
+      "mismatched": [],
+      "historical_snapshot_differences": [
+        "tools/protocol_lifecycle.js"
+      ],
+      "sdk_file_equals_runtime_snapshot": true,
+      "manifest_missing": {
+        "scripts/versioned_files.txt": [],
+        "scripts/project_files.txt": []
+      },
+      "unexpectedly_ignored": []
+    },
+    "regression": {
+      "python": 67,
+      "javascript": 4,
+      "status": "passed",
+      "report": "completion-regression.json"
+    },
+    "document_snapshots": [
+      {
+        "path": "docs/archive/root/FINGERPRINT.md",
+        "sha256": "ddedeffa01b6347ad2c623a9f0f25709af548f1f49f3bf348e8f30b3bf9739e5"
+      },
+      {
+        "path": "docs/MTGSIG_FIELDS_STATUS.md",
+        "sha256": "9e79916ec7d00a7fa92c5583c019d461909bae71b7e9257780de11b22de8c7ff"
+      },
+      {
+        "path": "docs/NATIVE_FIELDS_20261001.md",
+        "sha256": "d9810fc0999472f64b185d04748571ecdc43c647b10c453f7919841ba501263c"
+      },
+      {
+        "path": "docs/PROTOCOL_UPDATE.md",
+        "sha256": "e827384b0f3e51056b9583fb7fbf56a36624108c718bc68a12273ba68252b8ed"
+      },
+      {
+        "path": "docs/PROTOCOL.md",
+        "sha256": "ff89cd8ba84d7b39f546779584bf83d9dbdef28d2bb8af719f288e735a403d32"
+      },
+      {
+        "path": "tools/README.md",
+        "sha256": "dfd01bf54831b9d2010df5346d7d98eae4d2fb5ddd16a3b4e58ceec48c798403"
+      }
+    ],
+    "evidence": [
+      {
+        "name": "field-completion-evidence.json",
+        "sha256": "e61de1cb7534851b0eda0a87d06a2a24352ff4b8673d44c907b4230b33cdc5fe"
+      },
+      {
+        "name": "completion-cli-validation.json",
+        "sha256": "a3d855ef9cd43a271ce0bccf4c6d5b79a775b132d50bb4f9eb82b6255654a40f"
+      },
+      {
+        "name": "completion-baseline-20.json",
+        "sha256": "a82067de9721e5db022de604ea6b448256c9cb1be96b1c79cdcdbc87047837ee"
+      },
+      {
+        "name": "completion-candidate-25.json",
+        "sha256": "4be2e802924e1b72908f5abe61b832493e66986f7d87f1b9cd6bcfac93956d9b"
+      },
+      {
+        "name": "completion-integrity.json",
+        "sha256": "fbb8448b0814adb6bc5c10c04084a36201968b2c79a4a160d4dc6b5cc7747593"
+      },
+      {
+        "name": "completion-regression.json",
+        "sha256": "b8b11b073b515ffdbc1a2b727d0a56938d1bbd7ce11823b553787b0de0170a95"
+      },
+      {
+        "name": "native-current.json",
+        "sha256": "98bc8bd8a9bdfb19f36ab8613193959266019e4885710c5177587d2f6841d96b"
+      },
+      {
+        "name": "native-startup.json",
+        "sha256": "7d5e40f339783d5147fcdfe6eda0a17daa32d1bc99ba6e9c10c8d37bbc4b06bd"
+      }
+    ]
+  }
+}

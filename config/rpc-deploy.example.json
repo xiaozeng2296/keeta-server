@@ -1,0 +1,9 @@
+{
+  "host": "keeta-rpc",
+  "port": 22,
+  "remote_dir": "/opt/keeta-server",
+  "service": "keeta-rpc",
+  "python": "/opt/keeta-server/.venv/bin/python",
+  "url": "http://127.0.0.1:8799/",
+  "sudo": true
+}

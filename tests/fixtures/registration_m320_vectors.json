@@ -1,0 +1,131 @@
+{
+  "image_sha256": "0900cac89f75fc4f75279c708785bf2c7a03c228301a8e75ce62f93e3ad88488",
+  "source": "original 2fc910 VM and native crypto; external configuration/services supplied",
+  "vectors": [
+    {
+      "name": "base",
+      "fields": {
+        "m1": "test",
+        "m153": "synthetic-device"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "1200359348"
+    },
+    {
+      "name": "odd",
+      "fields": {
+        "m1": "test!",
+        "m153": "synthetic-device"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "1085802234"
+    },
+    {
+      "name": "lexical",
+      "fields": {
+        "m2": "two",
+        "m11": "eleven",
+        "m1": "one"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "866584021"
+    },
+    {
+      "name": "utf8",
+      "fields": {
+        "m1": "中文😀",
+        "m2": " ~ "
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "1161693331"
+    },
+    {
+      "name": "empty",
+      "fields": {
+        "m1": ""
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "1115424671"
+    },
+    {
+      "name": "config_short",
+      "fields": {
+        "m1": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "2.5",
+        "cipher_flag": 0,
+        "sdk_flag": 0,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "922224154"
+    },
+    {
+      "name": "config_long",
+      "fields": {
+        "m1": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 511,
+        "sdk_flag": 1,
+        "launch_seconds": 1700000000,
+        "provider_mask_hex": "000102030405060708090a0b0c0d0e0f"
+      },
+      "native_m320": "1346177371"
+    },
+    {
+      "name": "mask_time",
+      "fields": {
+        "m1": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "context": {
+        "appkey": "00000000-1111-2222-3333-444444444444",
+        "a0": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "cipher_flag": 186,
+        "sdk_flag": 1,
+        "launch_seconds": 1900000001,
+        "provider_mask_hex": "0f0e0d0c0b0a09080706050403020100"
+      },
+      "native_m320": "1272776969"
+    }
+  ]
+}
