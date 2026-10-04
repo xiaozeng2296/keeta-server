@@ -12,8 +12,8 @@
 > 配置生效续证：`observe-config` 分开观察 Horn 回调、storage 写入和 provider 加载。刷新路径 304/source=4 无回调；正常启动先读取存储使 provider 20→25，约 3.5 秒后 304/source=5 有成功回调与同值写入，之后未见重载。完整时序已观察，不能把收到响应、写入和激活混为一谈。相关 Python 67 项、JavaScript 4 个案例通过，完整证据见上述协议更新流程。
 
 > 2026-09-28 核验更正：本文含历史猜测，密码与注册状态以
-> `docs/A9_PROVIDER_NOTES.md`、`docs/LOCAL_ID_RESEARCH.md`、`docs/ENVELOPE_SDK.md`、
-> `docs/CORPSE_CODEC.md` 和 `OFFLINE_CHAIN_AUDIT.md` 为准。本地 a8 不是 SHA224；
+> [A9_PROVIDER_NOTES](../A9_PROVIDER_NOTES.md)、[LOCAL_ID_RESEARCH](../LOCAL_ID_RESEARCH.md)、`docs/ENVELOPE_SDK.md`、
+> [CORPSE_CODEC](../CORPSE_CODEC.md) 和 `OFFLINE_CHAIN_AUDIT.md` 为准。本地 a8 不是 SHA224；
 > envelope 支持三种 CBC 模式，RSA 封装的是 key XOR 设备 mask；未证实完整注册/发码成功。
 
 > 目的:**研究大厂风控 SDK 采集了哪些设备信息**(学习采集面与思路),非绕过风控。
@@ -86,7 +86,7 @@
 | b18 | 计数(国内≈b2 值) | 0 | 202 | 标志?(疑签名序号镜像) |
 | b20 | 计数 | — | 50 | 标志?(待反编译) |
 | b21 | 时间戳(秒) | — | 1787562278 | `oracle.go` |
-| b22 | 区域事件历史，值为距 SDK 启动的累计毫秒 | `[{"BR":"867"}]` | — | NativeBridge.regionMonitor/getRegion，见 `docs/REGION_PATH.md` |
+| b22 | 区域事件历史，值为距 SDK 启动的累计毫秒 | `[{"BR":"867"}]` | — | NativeBridge.regionMonitor/getRegion，见 [REGION_PATH](../REGION_PATH.md) |
 | b23 | 设备标识串(base62,14 字符) | — | `OLLpgcNz0O896E` | 自证(格式) · 语义待反编译 |
 | b24 | 设备标识串(base62,36 字符) | — | `daVFbMhHFtbhr2hNK9kDLtzQvg5K0ZZz6W3h` | 自证(格式) · 语义待反编译 |
 | b25 | 标志位 | — | 0 | 标志? |

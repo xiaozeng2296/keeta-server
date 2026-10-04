@@ -10,11 +10,13 @@
 | `keeta_login.py` / `keeta_offline_flow.py` / `mailbox.py` | 已有RPC兼容能力的实际依赖；不是主采集前置步骤 |
 | `keeta_client.py` / `keeta_sign_rpc.js` | 可选真机对拍兼容，普通采集无需启用 |
 | `config/` + `deploy/` + `scripts/` | 无凭据模板、进程入口、测试与提交检查 |
-| `tools/` | 日常检查、原生观测、代理桥接及现用数据映射 |
+| `tools/` | 日常检查、原生观测、离线对拍、代理桥接及现用数据映射 |
 | `tests/` | 当前能力的合成回归与显式可选集成验证 |
-| `docs/` | 当前流程、架构建议、协议更新、研究证据与少量算法笔记 |
+| `docs/` | 当前流程、架构建议、协议更新、字段来源与算法研究笔记 |
 
 `.private/`、`exports/`、抓包、dump、历史临时实验和旧文档全集留在运行数据区或旧研究仓库，不加入新项目。
+
+本次逆向分支补迁详见 [离线研究指南](docs/research/OFFLINE_RESEARCH.md) 和 [来源清单](docs/research/PROTOCOL_MIGRATION_MANIFEST.json)。研究依赖单独放在 `requirements-research.txt`。
 
 下列是本次整理的完整文件清单（后续新增以 Git 为准）：
 
@@ -34,6 +36,7 @@ keeta_sign_rpc.js
 mailbox.py
 requirements-dev.txt
 requirements-native.txt
+requirements-research.txt
 requirements.lock
 requirements.txt
 启动面板.command
@@ -66,8 +69,8 @@ deploy/keeta-worker.service
 docs/ACCOUNT_CHECKS.md
 docs/ARCHITECTURE.md
 docs/COLLECTION_FLOW.md
-docs/MTGSIG_FIELDS_STATUS.md
 docs/MIGRATION.md
+docs/MTGSIG_FIELDS_STATUS.md
 docs/OPERATIONS.md
 docs/PROTOCOL.md
 docs/PROTOCOL_UPDATE.md
@@ -75,12 +78,39 @@ docs/README.md
 docs/TESTING.md
 docs/VERSION_CONTROL.md
 docs/archive/A2_PASS2.md
+docs/archive/A5_B13_AUDIT.md
+docs/archive/A9_OLD_SAMPLE_FINDINGS.md
+docs/archive/A9_PROVIDER_NOTES.md
 docs/archive/A9_RPC.md
 docs/archive/A9_USAGE.md
+docs/archive/CORPSE_CODEC.md
 docs/archive/ENVELOPE_SDK.md
+docs/archive/FULL_CAPTURE_DEVICE_CHAIN.md
+docs/archive/FULL_CAPTURE_LOGIN_CHAIN.md
+docs/archive/FULL_REGISTRATION_LOGIN_CAPTURE.md
+docs/archive/INCOGNIA_GENERATION_TRACE.md
+docs/archive/LOCAL_ID_RESEARCH.md
+docs/archive/LOGIN_CONTEXT.md
+docs/archive/LOGIN_FINGERPRINT_FIELDS.md
+docs/archive/LOGIN_PROTOCOL_STATIC.md
+docs/archive/M175_SOURCE.md
+docs/archive/M239_SOURCE.md
+docs/archive/M324_SOURCE.md
+docs/archive/NEWREG_SIGNATURE.md
+docs/archive/NTP_RESPONSE.md
 docs/archive/README.md
+docs/archive/REGION_PATH.md
+docs/archive/REGION_SELECTION_STATIC.md
+docs/archive/REGISTRATION_CHECKSUM.md
+docs/archive/REGISTRATION_CONFIG_DEPENDENCIES.md
+docs/archive/REGISTRATION_FLOW.md
+docs/archive/REGISTRATION_LOGIN_CONTEXT.md
+docs/archive/SCFG_SOURCE.md
 docs/archive/root/DEVICE_FINGERPRINT_FIELDS.md
 docs/archive/root/FINGERPRINT.md
+docs/archive/root/LOGIN_PROTOCOL.md
+docs/archive/root/REGISTRATION_ID_STAGES.md
+docs/archive/root/V5_SIGN_FIELDS.md
 docs/research/A7_REFRESH_20261003.md
 docs/research/B16_DEVICEINFO_COUNT_20261002.md
 docs/research/B_COUNTERS_RENDER_20261002.md
@@ -88,6 +118,8 @@ docs/research/DYNAMIC_STATE_AUDIT_20261003.md
 docs/research/FIELD_LIFECYCLE_CONTROLS_20261003.md
 docs/research/FIELD_STATUS_HISTORY_20261004.md
 docs/research/NATIVE_FIELDS_20261001.md
+docs/research/OFFLINE_RESEARCH.md
+docs/research/PROTOCOL_MIGRATION_MANIFEST.json
 docs/research/PROTOCOL_OBSERVATIONS_20261001.json
 docs/research/README.md
 ```
@@ -283,6 +315,7 @@ tests/test_registration_reporting.py
 tests/test_registration_state.py
 tests/test_remote_update.py
 tests/test_request_freshness.py
+tests/test_research_tools.py
 tests/test_rpc_deploy.py
 tests/test_rpc_smoke.py
 tests/test_scfg.py
@@ -296,12 +329,20 @@ tests/test_timestamp_identity.py
 
 ```text
 tools/README.md
+tools/a9_native_verify.py
+tools/a9_provider_emulate.py
+tools/a9_unflatten.py
+tools/a9_validate_captures.py
 tools/check_account.py
 tools/crawl_keeta.py
+tools/inspect_login_static.py
 tools/protocol_lifecycle.js
 tools/protocol_probe.js
 tools/protocol_trace.js
 tools/protocol_watch.py
 tools/proxy_chain_bridge.py
 tools/refresh_fingerprint.py
+tools/verify_a2_pass2.py
+tools/verify_registration_collectors.py
+tools/verify_registration_m320.py
 ```

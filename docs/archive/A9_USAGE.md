@@ -94,4 +94,4 @@ key = seed XOR mask
 python3 -m unittest discover -s tests -p test_a9_cli.py -v
 ```
 
-目前本轮核验的当前及历史样本均已找到匹配配置并完成解密。当前交付覆盖已经验证的算法及配置；未来版本或未知动态配置仍需取得相应参数，不能仅从 a9 自动推断。缺少对应 a1 时，CLI 会报缺少输入。历史样本关联过程参见 `docs/A9_OLD_SAMPLE_FINDINGS.md`。
+目前本轮核验的当前及历史样本均已找到匹配配置并完成解密。当前交付覆盖已经验证的算法及配置；未来版本或未知动态配置仍需取得相应参数，不能仅从 a9 自动推断。缺少对应 a1 时，CLI 会报缺少输入。历史样本关联过程参见 [A9_OLD_SAMPLE_FINDINGS](A9_OLD_SAMPLE_FINDINGS.md)。

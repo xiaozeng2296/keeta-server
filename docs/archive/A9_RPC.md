@@ -87,7 +87,7 @@ curl -H 'Content-Type: application/json' --data-binary @mtgsig.json http://127.0
 }
 ```
 
-数组索引从 `0` 开始，与 `plain_json["1"]` 或 `plain_json["2"]` 的实际下标一致。当前已知的 a9 基础项和扩展项含义见 [`V5_SIGN_FIELDS.md`](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/root/V5_SIGN_FIELDS.md) 的 a9 表；未知或仅作占位的项仍会保留为 `index`，不会根据值猜测含义。解释是展示辅助信息，程序应以 `plain_json` 的原始值为准。
+数组索引从 `0` 开始，与 `plain_json["1"]` 或 `plain_json["2"]` 的实际下标一致。当前已知的 a9 基础项和扩展项含义见 [`V5_SIGN_FIELDS.md`](root/V5_SIGN_FIELDS.md) 的 a9 表；未知或仅作占位的项仍会保留为 `index`，不会根据值猜测含义。解释是展示辅助信息，程序应以 `plain_json` 的原始值为准。
 
 a5 的解释视图也使用 `fields` 列表。顶层 `b*` 字段及 `b1` 内层字段都带 `key`、`name`、`value`；如果原值本身是 JSON 字符串，节点额外保留 `raw`，解析后的子对象放在 `fields`，例如：
 

@@ -9,6 +9,7 @@
 | 理解账号到全部店铺任务的流程 | [COLLECTION_FLOW](COLLECTION_FLOW.md) |
 | 理解签名接口与输入边界 | [PROTOCOL](PROTOCOL.md) |
 | 查询a/b字段的已证结论和未知项 | [MTGSIG_FIELDS_STATUS](MTGSIG_FIELDS_STATUS.md) |
+| 阅读算法来源与复跑离线逆向工具 | [离线研究指南](research/OFFLINE_RESEARCH.md) |
 | 协议变化后如何定位、修改和验收 | [PROTOCOL_UPDATE](PROTOCOL_UPDATE.md) |
 | 测试、干净发布包和采集验收 | [TESTING](TESTING.md) |
 | 服务边界与优化顺序 | [ARCHITECTURE](ARCHITECTURE.md) |

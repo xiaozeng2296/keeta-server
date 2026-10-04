@@ -14,3 +14,5 @@
 | fingerprint信封 | [ENVELOPE_SDK](../archive/ENVELOPE_SDK.md) | 密码还原不等于可以凭空构造完整设备画像 |
 
 被替代的b17旧续接启发式放在 [旧缓存修复记录](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/superseded/COLLECTION_REFRESH_20260929.md)；费用和容量估算的早期设计放在 [旧队列设计](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/design/ACCOUNT_QUEUE_DESIGN.md)。这些文件用于追溯，不作为当前实现要求。
+
+完整学习路径、离线对拍命令和研究分支补迁清单见 [离线研究指南](OFFLINE_RESEARCH.md)。

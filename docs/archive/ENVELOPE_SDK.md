@@ -13,7 +13,7 @@ envelope         = b64(part1).rstrip('=') + '=' + b64(part2)
 
 CBC 支持 `aes`、`twofish`、`twofish-mod`，IV 为 ASCII `0102030405060708`。当前非负原生 mode flag `%3` 映射为 `0=twofish-mod、1=twofish、2=aes`。字段采集与 m 系列字段变换在输入阶段完成，不属于 envelope 加密器。
 
-输入阶段不是统一执行字段变换：当前 `/v5/sign` 和 fingerprint info collector 使用 `0x2fc948(mode=0)`，其 JSON 为原始缓存值，默认 `transform="none"`；device-info 使用mode1，才在 m320计算后应用 m-series变换。不要对mode0采样先 decode_fields；可逆往返不能证明编码阶段。四端点与ABI见 `dump/envelope_recovery/REGISTRATION_COLLECTORS.md`，checksum见 `docs/REGISTRATION_CHECKSUM.md`。
+输入阶段不是统一执行字段变换：当前 `/v5/sign` 和 fingerprint info collector 使用 `0x2fc948(mode=0)`，其 JSON 为原始缓存值，默认 `transform="none"`；device-info 使用mode1，才在 m320计算后应用 m-series变换。不要对mode0采样先 decode_fields；可逆往返不能证明编码阶段。四端点与ABI见 `dump/envelope_recovery/REGISTRATION_COLLECTORS.md`，checksum见 [REGISTRATION_CHECKSUM](REGISTRATION_CHECKSUM.md)。
 
 早期“raw RSA 中的 16B 就是 payload key”的结论错在遗漏了 XOR mask。因此直接用 SecKeyEncrypt 输入试 AES/Twofish 均失败，不能据此认定算法是未知白盒。另一把被误称“随机信封 AES key”的抓取 key，与本次真实 payload key 没有关联。
 

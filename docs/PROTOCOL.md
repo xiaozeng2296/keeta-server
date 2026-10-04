@@ -46,7 +46,7 @@
 
 a9 的 CRC 对压缩流计算，解码同时检查 padding、CRC 与完整 zlib。它不是“一把固定 AES key 通解全部数据”；历史失败包含配置不匹配以及密码分支判断错误。已实现的 `default`、`legacy` 是已验证配置标签，不是设备类别。
 
-I-series 与 A envelope 的路由不能按字段英文名称互换。详细格式见 [a9 用法](archive/A9_USAGE.md)、[provider 边界](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/A9_PROVIDER_NOTES.md)、[SDK envelope](archive/ENVELOPE_SDK.md)、[corpse 变换](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/CORPSE_CODEC.md)。
+I-series 与 A envelope 的路由不能按字段英文名称互换。详细格式见 [a9 用法](archive/A9_USAGE.md)、[provider 边界](archive/A9_PROVIDER_NOTES.md)、[SDK envelope](archive/ENVELOPE_SDK.md)、[corpse 变换](archive/CORPSE_CODEC.md)。
 
 ## RPC
 
@@ -96,11 +96,11 @@ RPC 详细示例见 [接口说明](archive/A9_RPC.md)。更新、暂存验证与
 
 2026-10-03 更新：[从已有材料刷新 a7](research/A7_REFRESH_20261003.md) 已完成36账号服务端刷新、33账号营业店四接口验证，以及#44保存重载和多次真实到期续接。输入来自账号自身a5/a8、UUID、请求上下文及匹配SDK配置，经六字段+m320构造新envelope；a7必须取成功响应，不能离线计算。#71/#121/#126个人信息200而店铺403仍未解决。19:49已保留无worker模式替换空闲面板以加载当前代码；随后按同会话最新成功证据逐接口续接33账号可用状态，额度和失败账号保持，未启动原批次。维护器本身仍不会因上报成功自动清业务冷却。
 
-注册执行器已经支持 OneID、newreg、scfg、区域状态及重复指纹上报等已观察阶段，并在下一次签名前应用成功响应。对应抓包顺序和当前实现见 [注册链](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/REGISTRATION_FLOW.md)、[a7/a8 阶段](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/root/REGISTRATION_ID_STAGES.md)。
+注册执行器已经支持 OneID、newreg、scfg、区域状态及重复指纹上报等已观察阶段，并在下一次签名前应用成功响应。对应抓包顺序和当前实现见 [注册链](archive/REGISTRATION_FLOW.md)、[a7/a8 阶段](archive/root/REGISTRATION_ID_STAGES.md)。
 
-邮箱协议已有 risk、apply、验证码提交及响应关联实现。历史完整抓包证明原生 App 会话发码/注册成功；现有协议尝试仍有 risk 拒绝，不能把抓包成功或本地密码往返当作新的协议登录成功。见 [登录协议](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/root/LOGIN_PROTOCOL.md)、[完整成功抓包审计](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/FULL_REGISTRATION_LOGIN_CAPTURE.md)。
+邮箱协议已有 risk、apply、验证码提交及响应关联实现。历史完整抓包证明原生 App 会话发码/注册成功；现有协议尝试仍有 risk 拒绝，不能把抓包成功或本地密码往返当作新的协议登录成功。见 [登录协议](archive/root/LOGIN_PROTOCOL.md)、[完整成功抓包审计](archive/FULL_REGISTRATION_LOGIN_CAPTURE.md)。
 
-Incognia token 的已观察封装与七个明文字段已有生成实现和离线对拍；它依赖 SDK 配置、安装标识、初始化/请求计数与时钟，不会自动注册一个新的安装身份。未知会话 token 也不能仅靠公钥解密。当前采集工作台使用的兼容策略见 [运行说明](OPERATIONS.md)，算法证据见 [Incognia 生成链](https://github.com/xiaozeng2296/keeta-device/blob/6197c52899b5bfcbed858004f064d7cd3c1eeea1/docs/archive/INCOGNIA_GENERATION_TRACE.md)。
+Incognia token 的已观察封装与七个明文字段已有生成实现和离线对拍；它依赖 SDK 配置、安装标识、初始化/请求计数与时钟，不会自动注册一个新的安装身份。未知会话 token 也不能仅靠公钥解密。当前采集工作台使用的兼容策略见 [运行说明](OPERATIONS.md)，算法证据见 [Incognia 生成链](archive/INCOGNIA_GENERATION_TRACE.md)。
 
 ## 验证口径
 
