@@ -2,7 +2,7 @@
 
 The observed fingerprint info ``data.result``
 supplies the server XID (a7), and v5/sign ``data.dfp`` supplies the server DFP
-(a8). FAMA /ntp has a separate strict A/1.0 decoder and cache transition.
+(a8). Only the supported report response fields are accepted.
 HTTP success alone is insufficient; each endpoint's business status validates.
 This module performs no HTTP, signing, persistence, or identity generation.
 """
@@ -13,7 +13,6 @@ from urllib.parse import urlsplit
 _ENDPOINT_FIELDS = {
     "/fingerprint/v1/info/report": ("result", "a7", "a7_local_xid", "a7_server_xid", "xid"),
     "/v5/sign": ("dfp", "a8", "a8_local_dfp", "a8_server_dfp", "dfp"),
-    "/ntp": ("ntp_info", "a8", "a8_local_dfp", "a8_server_dfp", "dfp"),
 }
 
 
@@ -47,14 +46,6 @@ def parse_registration_response(endpoint, response, *, http_status):
     spec = _field_spec(endpoint)
     if spec is None or type(http_status) is not int or not 200 <= http_status < 300:
         return {}
-    if urlsplit(endpoint).path == "/ntp":
-        from mtgsig.ntp_protocol import decode_ntp_response
-        try:
-            decoded = decode_ntp_response(response, http_status=http_status)
-        except (TypeError, ValueError):
-            return {}
-        return dict(decoded.identity_patch(), ntp_fingerprint_data=decoded.fingerprint_data(),
-                    ntp_response_source=decoded.source_endpoint)
     if not isinstance(response, Mapping):
         return {}
     if type(response.get("code")) is not int or response["code"] != 0:
@@ -89,8 +80,6 @@ def apply_registration_response(identity, endpoint, response, *, http_status):
     already equal to the response is not relabelled as local.  Pass an identity representing
     the request that produced the response, not a different device/session.
 
-    An OfflineSigner integration must update both ``mt`` and the corresponding
-    fields in ``pay_template``; updating just ``mt`` would sign stale data.
     Persistence and signer synchronization are explicit caller operations.
     """
     if not isinstance(identity, MutableMapping):

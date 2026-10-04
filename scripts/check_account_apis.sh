@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec "$(dirname -- "$0")/python.sh" -m farm.account_checks apis "$@"
+exec "$(dirname -- "$0")/python.sh" -m farm.accounts.checks apis "$@"

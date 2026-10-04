@@ -1,27 +1,30 @@
-# 离线签名 RPC
+# 离线签名与加解密 HTTP
 
-`../keeta_rpc.py` 提供共享算法的 HTTP 入口，默认 `127.0.0.1:8799`。采集器直接调用 `farm/fullsign.py`，不需要额外经过 RPC 网络跳转。RPC 的 `/sign` 有缓存和签名计数；不要与 Worker 同时写同一份账号身份档。
+启动：`scripts/start_rpc.sh --port 8799`，等价于 `python -m rpc`。服务默认监听 `127.0.0.1`；配置环境变量 `KEETA_RPC_TOKEN` 后以 `X-Token` 鉴权。
+
+`server.py` 只处理 HTTP、鉴权、JSON 和错误状态，然后调用 `mtgsig.api.ROUTES` 对应函数。算法属于共享库；没有账号库、自动刷新、签名缓存、后台任务或远程部署代码。
+
+| 接口 | 用途 |
+|---|---|
+| `GET /health` | 当前能力和 `stateless: true` |
+| `POST /sign` | 提交 `identity` 对象、`method`、`url`、`body`，返回 `mtgsig` 和更新后的 `identity` |
+| `POST /a2`、`/k2buf` | 请求签名和配套 mask 派生 |
+| `POST /a5/encrypt`、`/a5/decrypt` | a5 JSON/密文转换 |
+| `POST /a9/encode`、`/a9/decode` | a9 AES/Twofish/Twofish-mod 编解码 |
+| `POST /fingerprint/encrypt`、`/fingerprint/decrypt` | 已知 I-series 等固定配置指纹；`/fp/*` 为同函数别名 |
+| `POST /envelope/encode`、`/envelope/decode` | SDK 指纹信封构造/解码 |
+| `POST /decrypt` | 整条 mtgsig 逐字段解析和含义说明 |
+
+`/sign` 不接受 `identity_path`。调用者管理账号互斥与状态续接，下一次请求传回返回的 `identity`；服务不会在不同请求之间推进计数。Worker 直接调用同一库，仍由 MySQL 账号锁保护并持久化计数。a7 的到期网络维护由 Worker 完成，RPC 不发送上报或业务请求。
+
+请求示例保存在调用者自己的 `request.json`：
 
 ```bash
-scripts/start_rpc.sh --host 127.0.0.1 --port 8799
-scripts/python.sh rpc/smoke.py --help
+curl --fail-with-body http://127.0.0.1:8799/sign \
+  -H 'Content-Type: application/json' --data-binary @request.json
+scripts/python.sh scripts/smoke_rpc.py --url http://127.0.0.1:8799
 ```
 
-需要鉴权时由进程环境传入 `KEETA_RPC_TOKEN`，调用方用 `X-Token`；不写入代码或版本库。接口与密码分支见 [PROTOCOL](../docs/PROTOCOL.md)。注册/登录密码接口保留兼容，采集主流程不调用它们；它们不代表无需额外材料即可创建新账号。
+配置鉴权时同时传 `X-Token`；烟测从环境读取 token，只发送合成数据。参数及限制见 [协议指南](../docs/PROTOCOL.md)。
 
-## 更新已有远端服务
-
-先把 `config/rpc-deploy.example.json` 复制为 `.private/rpc-deploy.json`，填写 SSH Host、安装目录、服务名与远端 venv 路径。SSH 认证在机器上自行配置；脚本不携带账号材料或认证私钥。
-
-```bash
-# 上传到隔离暂存目录并验证，不切换服务
-python rpc/deploy.py --stage-only
-# 显式正式更新：备份代码、安装、重启服务、健康/密码烟测；失败回滚代码
-python rpc/deploy.py
-# 显式回滚一次发布
-python rpc/deploy.py --rollback RELEASE_ID
-```
-
-运行文件与 RPC 测试清单唯一来源是 `rpc/remote_update.py`。打包只含该清单，不含本地业务库/代理授权。首次部署先按根 README 安装 Python 依赖，再安装 `deploy/keeta-rpc.service` 示例，填真实工作目录与私有环境文件。远端配置、身份状态和密钥不由代码发布包覆盖。
-
-发布中断仍须人工核对备份和服务状态；不能回滚已发送请求、a7或签名计数。SIGKILL/断电不能承诺自动完成代码回滚。
+服务器更新只需拉取代码、安装依赖并重启进程，见 [运行指南](../docs/OPERATIONS.md)。不再存在 `remote_update.py`、SSH 上传发布包或维护两份文件白名单。

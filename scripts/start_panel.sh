@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec "$(dirname -- "$0")/python.sh" -m farm.panel "$@"
+exec "$(dirname -- "$0")/python.sh" -m farm.web.app "$@"

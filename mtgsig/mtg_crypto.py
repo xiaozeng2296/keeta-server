@@ -1,15 +1,6 @@
-"""keeta mtgsig a5/a9 编解码 —— 算法移植自国内 mtgsig_go(a5.go/a9.go),常量为 keeta 专属。
+"""a5/fingerprint primitives and Twofish blocks for the shared offline codecs."""
+import zlib, base64, struct, json
 
-a5 = base64( RC4变体( zlib.deflate(采集JSON) ) )
-     密钥 seed = (a1 + a3 + a4) 的 ASCII, key[i] = seed[i] ^ k2buf[i%16]
-a9 = hex(crc32(zlib(指纹JSON))) + base64( CBC(PKCS7(zlib(指纹JSON)), IV, Feistel) )
-     Feistel 16轮 + 4张T表(v73), CBC IV="0102030405060708"
-
-用法:传入该设备的 k2buf(16B)/v73 表即可解密/生成。keeta 与国内同算法,仅常量不同。
-"""
-import os, zlib, base64, struct, binascii, json
-
-HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 # B-line login fingerprint (the I-series JSON sent as the form field
@@ -101,10 +92,11 @@ def a5_encrypt(collect_json: bytes, a1: str, a3: int, a4: int, k2buf: bytes, lev
 A9_IV = b"0102030405060708"
 
 
-class A9Cipher:
-    def __init__(self, v73: bytes):
-        assert len(v73) >= 4256, "v73 需 >=4256B(1024 T表 + 40 轮密钥)"
-        self.v = list(struct.unpack("<1064I", v73[:4256]))
+class TwofishCipher:
+    def __init__(self, schedule: bytes):
+        if len(schedule) != 4256:
+            raise ValueError("Twofish schedule requires 4256 bytes")
+        self.v = list(struct.unpack("<1064I", schedule))
 
     def _tn(self, y):
         v = self.v
@@ -169,48 +161,8 @@ class A9Cipher:
             out += c; prev = c
         return bytes(out)
 
-    def decode(self, a9: str) -> bytes:
-        crc_hex, b64 = a9[:8], a9[8:]
-        X = self._cbc_dec(base64.b64decode(b64))
-        pad = X[-1]
-        if 1 <= pad <= 16 and all(x == pad for x in X[-pad:]):
-            X = X[:-pad]
-        got = "%08x" % (binascii.crc32(X) & 0xffffffff)
-        if got != crc_hex:
-            raise ValueError(f"CRC32 不匹配 {got} != {crc_hex}")
-        return zlib.decompress(X)
 
-    def encode(self, fingerprint: bytes, level: int = 6) -> str:
-        xz = zlib.compress(fingerprint, level)
-        crc = "%08x" % (binascii.crc32(xz) & 0xffffffff)
-        pad = 16 - (len(xz) % 16) or 16
-        X = xz + bytes([pad]) * pad
-        return crc + base64.b64encode(self._cbc_enc(X)).decode()
 
 
 def _ror(x, n): x &= 0xffffffff; return ((x >> n) | (x << (32 - n))) & 0xffffffff
 def _rol(x, n): return _ror(x, 32 - n)
-
-
-if __name__ == "__main__":
-    import json
-    # ---- 自检 a5: 用国内测试向量验证移植字节级正确 ----
-    dom = "mtgsig_app（国内）/mtgsig_go/testdata/a5_vector.json"
-    p = os.path.join(HERE, "..", dom)
-    v = json.load(open(p))
-    k2 = bytes.fromhex(v["k2"])
-    plain = a5_decrypt(v["a5"], v["a1"], v["a3"], v["a4"], k2)
-    ok = plain.decode() == v["plain"]
-    print("a5 解密自检(国内向量):", "✅ PASS" if ok else "❌ FAIL")
-    if not ok:
-        print("  got:", plain[:80]); print("  exp:", v["plain"][:80])
-    # 往返
-    re_a5 = a5_encrypt(plain, v["a1"], v["a3"], v["a4"], k2)
-    print("a5 往返一致:", a5_decrypt(re_a5, v["a1"], v["a3"], v["a4"], k2) == plain)
-
-    # ---- 自检 a9: encode->decode 往返(国内 v73)----
-    v73 = open(os.path.join(HERE, "ref_domestic", "v73.bin"), "rb").read()
-    c = A9Cipher(v73)
-    fp = b'{"b1":"test","b2":1}'
-    a9 = c.encode(fp)
-    print("a9 往返一致:", c.decode(a9) == fp)

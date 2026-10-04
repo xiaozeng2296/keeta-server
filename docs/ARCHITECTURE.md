@@ -4,7 +4,7 @@
 
 | 单元 | 当前职责 |
 |---|---|
-| Web (`farm.panel --no-worker`) | 导入账号/店铺、配置路由、排队/停止、读取汇总和下载；页面关闭不影响 Worker |
+| Web (`farm.web.app`) | 导入账号/店铺、配置路由、排队/停止、读取汇总和下载；页面关闭不影响 Worker |
 | Worker (`farm.executor`) | 账号/安装锁、额度预留、a7 维护、签名、网络请求、任务扩展、结果提交及导出 |
 | MySQL | 账号加密材料、用量、冷却、任务/attempts 元数据、响应文件的哈希引用 |
 | 本机 `.private/responses/` | 原始业务 JSON 和失败诊断；新响应体不上传 MySQL |

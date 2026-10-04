@@ -13,7 +13,7 @@ from functools import lru_cache
 
 from Crypto.Cipher import AES
 
-from .mtg_crypto import A9Cipher
+from .mtg_crypto import TwofishCipher
 
 IV = b"0102030405060708"
 DEFAULT_SALT = bytes.fromhex("38cb1cf146637e7e03f679237b839e7c")
@@ -133,7 +133,7 @@ def _crypt(data, key, mode, *, decrypt):
         return cipher.decrypt(data) if decrypt else cipher.encrypt(data)
     if mode not in ("twofish", "twofish-mod"):
         raise ValueError(f"unknown a9 cipher mode: {mode}")
-    cipher = A9Cipher(twofish_schedule(key, modified=mode == "twofish-mod"))
+    cipher = TwofishCipher(twofish_schedule(key, modified=mode == "twofish-mod"))
     return cipher._cbc_dec(data) if decrypt else cipher._cbc_enc(data)
 
 

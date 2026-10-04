@@ -1,5 +1,7 @@
 # 2026-10-01 原生签名字段观察
 
+> 历史原生证据：文中工具/命令对应采样版本，未随精简运行包保留。当前入口见 [协议指南](../PROTOCOL.md)，旧实现可从 [整理记录](../MIGRATION.md) 的固定提交追溯。
+
 本次使用 USB 手机的当前 Keeta 进程，观察签名装配与一次正常 SDK 初始化，没有替换签名结果、强制写 a3 或重置账号。当前 App 为 3.12.500、CFBundleVersion 18565、SDK 5.21.10、iOS 16.0.2。Mach-O UUID 为 `3fb544966dc03ccca41b9055fc509adf`。所有下述地址都是该镜像的 RVA。
 
 ## 已验证的数据流
@@ -60,7 +62,7 @@ mtgsig:               a3=25
 
 新增 `mtgsig/provider_config.py` 严格接受非负 32 位整数及 16 字节盐，拒绝重复键、额外字段、类型错误、非规范 Base64、错误 padding。它不会模仿上述异常 JSON 的宽松类型转换。`None` 表示没有观察资料，不等同于原生空字符串默认配置。
 
-`protocol_watch.py native/audit` 会解码配置，输出参数、shift、盐摘要，并验证同一容器内配置是否匹配签名 a3/a5。已知命名 profile 失败时，审计可使用解出的真实参数验证 a5、完整 a2，并独立尝试 a9；a9 的已有缓存配置仍单独检测。`farm.fullsign.k2buf/decode_a5/compute_a2` 接受显式 `ProviderConfig` 对象供对拍使用。本次没有自动迁移账户中的命名 profile。
+`protocol_watch.py native/audit` 会解码配置，输出参数、shift、盐摘要，并验证同一容器内配置是否匹配签名 a3/a5。已知命名 profile 失败时，审计可使用解出的真实参数验证 a5、完整 a2，并独立尝试 a9；a9 的已有缓存配置仍单独检测。`mtgsig.signer.k2buf/decode_a5/compute_a2` 接受显式 `ProviderConfig` 对象供对拍使用。本次没有自动迁移账户中的命名 profile。
 
 ### 动态配置的写入入口
 
@@ -186,9 +188,9 @@ message = canonical_request.encode('utf-8') + body.encode('utf-8')[:16200] + pay
 
 截断可以停在 UTF-8 字符中间；不能按 Python 字符数截断，也不能对前缀重新 decode/encode 或插入替换字符。Body 上限不包含 canonical 请求串和 payload；这是**签名消息**的长度处理，实际 HTTP Body 保持原样。
 
-`keeta_a2.signing_message()` 统一该行为，`farm/fullsign.py` 与历史消息生成入口复用；独立验证工具同步原生边界。修复后重新审计：此前未加观察 hook 的 7 条原生大 Body/长度样本全部通过；七份原始抓包的 566 条原生布局也全部通过完整 a2、a5/a9 往返，另外 4 条 x0=4 保持 unsupported。历史失败报告未覆盖或删除，新报告单独记录修复后结果。
+`mtgsig.a2.signing_message()` 统一该行为，`mtgsig/signer.py` 与历史消息生成入口复用；独立验证工具同步原生边界。修复后重新审计：此前未加观察 hook 的 7 条原生大 Body/长度样本全部通过；七份原始抓包的 566 条原生布局也全部通过完整 a2、a5/a9 往返，另外 4 条 x0=4 保持 unsupported。历史失败报告未覆盖或删除，新报告单独记录修复后结果。
 
-`tests/test_a2_message.py` 保存 7 组真机观察的合成 Body 前缀哈希，不包含账号或设备采集明文；另测字节跨界、签名边界与 payload 绑定。增加这 4 项后相关回归共 67 项通过。证据范围是上述 App/SDK 构建及历史样本，尚未进行新业务请求的服务端验收；升级时需重验这一长度规则。
+`tests/protocol/test_a2_message.py` 保存 7 组真机观察的合成 Body 前缀哈希，不包含账号或设备采集明文；另测字节跨界、签名边界与 payload 绑定。增加这 4 项后相关回归共 67 项通过。证据范围是上述 App/SDK 构建及历史样本，尚未进行新业务请求的服务端验收；升级时需重验这一长度规则。
 
 ## Horn 生命周期与失败实验的边界
 
@@ -239,7 +241,7 @@ message = canonical_request.encode('utf-8') + body.encode('utf-8')[:16200] + pay
 4. 保存启动事件、同进程原生样本和 audit，再与正常 UI 启动后的样本比较。使用过 Frida spawn 的实验进程曾发生 script unload/detach 等待；显式移除启动 hooks 后的配置观察能正常退出，但后续重复附加仍曾超时。结束实验进程并经系统 UI 启动后，普通和带字段观察的 CLI 均有正常退出的验证。工具通过 Frida Cancellable 为每个操作设置期限；真实挂起的 attach 已验证在 3 秒测试期限内返回 `operation=attach / OperationCancelledError`。不能把卡住的退出解释为采样没发生，更不能无限重启重试。
 5. 新版重新定位 selector → bridge → JSON 装配 → 字段读取者，再更新 trace 的 UUID 与地址校验。当前 SDK 代码片段位于非加密区域；镜像 cryptid=1、加密页为 0x221d000..0x221e000。旧 `dump/Keeta.dec` 的 UUID 不同，不能用旧反汇编覆盖当前证据。
 
-本次原始实验记录位于 `.private/protocol-audit/`，公共摘要及原始文件 SHA-256 见 [观察汇总](PROTOCOL_OBSERVATIONS_20261001.json)。历史 566 条原生布局审计与本次真机采样分开计数。
+本次原始实验记录位于 `.private/protocol-audit/`，公共摘要及原始文件 SHA-256 见 [观察汇总](https://github.com/xiaozeng2296/keeta-server/blob/2ec895ea20c0ca273ee036af5dc0d8fed55d1f97/docs/research/PROTOCOL_OBSERVATIONS_20261001.json)。历史 566 条原生布局审计与本次真机采样分开计数。
 
 ## USB / roothide 连接要点
 

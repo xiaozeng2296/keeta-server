@@ -1,6 +1,0 @@
-# Optional offline research tools; versions verified during protocol migration.
-# Production services do not need these native-analysis packages.
--r requirements.txt
-capstone==5.0.9
-lief==1.0.0
-unicorn==2.1.4

@@ -1,2 +1,0 @@
-# Optional native protocol observation; choose the version matching the device.
-frida>=16,<18

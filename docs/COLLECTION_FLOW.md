@@ -19,7 +19,7 @@
 
 ## 当前实现入口
 
-`farm/mysql_worker.py` / `farm/mysql_service.py` 是唯一采集执行链，`farm/fullsign.py` 与 `mtgsig/` 是共享签名实现，`farm/fingerprint_refresh.py` 负责上报及本机维护计数。通过 `scripts/start_worker.sh` 启动；`farm.batch_prepare` 只准备任务，面板明确排队后才采集。
+`farm/collection/worker.py` / `farm/collection/executions.py` 是唯一采集执行链，`mtgsig/signer.py` 与 `mtgsig/` 是共享签名实现，`farm/accounts/fingerprint.py` 负责上报及本机维护计数。通过 `scripts/start_worker.sh` 启动；`farm.collection.prepare` 只准备任务，面板明确排队后才采集。
 
 响应体及失败诊断写 `.private/responses/`，SQL 只存哈希引用。响应先写私有恢复日志后提交 SQL；重启只重放提交，不重发已保存的响应。a7 小型计数 JSON 通过文件锁和原子写持久化，不使用 SQLite。
 

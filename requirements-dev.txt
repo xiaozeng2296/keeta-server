@@ -1,2 +1,0 @@
--r requirements.txt
-# unittest is in the Python standard library.

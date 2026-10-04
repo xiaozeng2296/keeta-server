@@ -2,8 +2,8 @@
 import argparse
 from pathlib import Path
 import signal
-from farm.mysql_store import Store, DEFAULT_CONFIG
-from farm.mysql_service import ExecutionManager
+from farm.storage.mysql import Store, DEFAULT_CONFIG
+from farm.collection.executions import ExecutionManager
 
 
 def main():

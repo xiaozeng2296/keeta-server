@@ -21,6 +21,6 @@ scripts/check_account_apis.sh --accounts 1,2 --shop-id SHOP_ID --execute
 
 Worker 在账号池内轮换；普通接口无额外等待，仅同账号定制详情间隔。网络错误保留任务退避，不当成永久封号。连续四次 403 且涉及至少两个账号会终止本轮，重启不清该证据。到期冷却仅在启用自动恢复的执行任务中重新参与调度，额度不足仍等待；签名构造失败或缺材料明确显示原因。
 
-出口通过面板“代理/节点”或 `farm.batch_prepare --routes` 明确配置。所有敏感配置加密保存；配置修改需要账号空闲。不再支持 `--local-batch`、`set_local_proxy.sh` 或第二套本地调度。
+出口通过面板“代理/节点”或 `farm.collection.prepare --routes` 明确配置。所有敏感配置加密保存；配置修改需要账号空闲。不再支持 `--local-batch`、`set_local_proxy.sh` 或第二套本地调度。
 
 历史的 100 店实际压测结果见 [全流程](COLLECTION_FLOW.md)。新存储链的合成/数据库回归与历史实测分别记录，不能把改造前的压测当作改造后已经完成真实压测。

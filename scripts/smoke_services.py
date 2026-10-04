@@ -47,17 +47,16 @@ def ready(child,url):
 
 
 def main():
-    from rpc.smoke import Client,run_checks
+    from scripts.smoke_rpc import check
     endpoint='http://127.0.0.1:'+str(port())
     env=os.environ.copy();env.pop('KEETA_RPC_TOKEN',None);env.pop('PYTHONPATH',None)
-    with process([sys.executable,'keeta_rpc.py','--port',endpoint.rsplit(':',1)[1]],env) as child:
+    with process([sys.executable,'-m','rpc','--port',endpoint.rsplit(':',1)[1]],env) as child:
         assert ready(child,endpoint+'/health')[0]==200
-        client=Client(endpoint);run_checks(client,report=lambda *_:None)
-        rpc_requests=client.requests
-    from farm.panel import create_app
+        rpc_requests=check(endpoint)["rpc_http_requests"]
+    from farm.web.app import create_app
     from werkzeug.serving import make_server
     store=Mock();store.rows.return_value=[]
-    server=make_server('127.0.0.1',0,create_app(store,start_worker=False))
+    server=make_server('127.0.0.1',0,create_app(store))
     thread=threading.Thread(target=server.serve_forever);thread.start()
     try:
         base='http://127.0.0.1:'+str(server.server_port)
@@ -76,7 +75,7 @@ def main():
                         'class H(BaseHTTPRequestHandler):\n def do_GET(self):\n  self.send_response(200);self.end_headers();self.wfile.write(b"{}")\n'
                         'HTTPServer(("127.0.0.1",'+str(proxy_port)+'),H).serve_forever()\n');core.chmod(0o700)
         config=root/'pool.json';config.write_text(json.dumps(dict(core=str(core),controller='http://127.0.0.1:'+str(proxy_port),secret='synthetic-smoke',nodes=[dict(name='synthetic',proxy='http://127.0.0.1:'+str(proxy_port))])))
-        program='from pathlib import Path;import sys;from farm import proxy_service as p;p.ROOT=Path(sys.argv[1]);sys.argv=["proxy","--setting",sys.argv[2],"--run"];p.main()'
+        program='from pathlib import Path;import sys;from farm.network import service as p;p.ROOT=Path(sys.argv[1]);sys.argv=["proxy","--setting",sys.argv[2],"--run"];p.main()'
         with process([sys.executable,'-c',program,str(root),str(config)],env) as child:
             assert ready(child,'http://127.0.0.1:'+str(proxy_port)+'/version')[0]==200
         with socket.socket() as sock:

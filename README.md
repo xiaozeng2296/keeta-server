@@ -1,10 +1,10 @@
 # Keeta Server
 
-现有账号的店铺采集、Web 管理、离线签名 RPC、代理路由及协议学习维护代码。以 2026-10-04 已验收的本地 100 店链路为迁移基线；不包含历史抓包、dump、账号、数据库口令、代理授权或采集结果。
+已有账号的店铺采集与管理。只有一条任务执行链：Web → MySQL 队列 → Worker；业务响应保存在本机，数据库只保存账号加密材料、用量、冷却、任务与响应引用。离线签名共用 `mtgsig`，RPC 只把这些函数暴露为 HTTP 接口。
 
-## 安装
+## 安装与启动
 
-Python 3.9+，MySQL 8 管理账号、用量与任务，响应体只保存在本机文件；运行链不使用 SQLite。建议新部署采用仍受支持的 Python 版本。Mihomo / GOST 3 按实际代理方式另行安装；常规离线采集无需 Frida 或手机常驻。
+Python 3.9+、MySQL 8；新部署建议采用仍受支持的 Python 版本。Clash/Mihomo、GOST 按出口需求另装。正常采集不需要手机、Frida 或研究工具。
 
 ```bash
 python3 -m venv .venv
@@ -12,43 +12,42 @@ python3 -m venv .venv
 mkdir -p .private
 chmod 700 .private
 cp config/mysql.example.json .private/mysql.json
-chmod 600 .private/mysql.json
-# 编辑私有连接配置；接已有数据库时必须同时恢复原 account_encryption.key。
-./scripts/python.sh -m farm.mysql_cli init
-./scripts/start_panel.sh --no-worker --port 8788
+# 填写本机配置；使用已有数据库时恢复原 account_encryption.key。
+./scripts/python.sh -m farm.cli init
+./scripts/start_panel.sh --port 8788
+# 另一个终端启动唯一的队列执行器：
+./scripts/start_worker.sh
 ```
 
-面板绑定 `127.0.0.1`。`--no-worker` 只开管理端；MySQL 队列另开 `./scripts/start_worker.sh`。全部批次使用同一个 Worker，业务响应只落本机，数据库仅保存状态和哈希引用。新环境需要导入自己的账号材料和配置出口。
+离线计算接口按需启动：`./scripts/start_rpc.sh --port 8799`。Worker 直接调用签名库，采集不经过 RPC。账号和出口在面板导入、配置；仅准备批次不会自动发请求。
 
-## 入口
+## 目录
 
-| 功能 | 入口 |
-|---|---|
-| Web 后台 | `scripts/start_panel.sh` |
-| MySQL 队列 Worker | `scripts/start_worker.sh` |
-| 本地批次准备 | `python -m farm.batch_prepare --help` |
-| 推荐营业候选店铺 | `python -m farm.recommendations --help` |
-| 交付验收与计时 | `python -m farm.batch_audit <output-folder>` / `farm.batch_report RUN_ID` |
-| 签名 / 加解密 RPC | `scripts/start_rpc.sh --port 8799` |
-| 独立代理核心 | `scripts/start_proxy.sh --help` |
-| 链式代理 | `python -m tools.proxy_chain_bridge --help` |
-| 日常账号验证 | `scripts/check_account_signatures.sh`、`scripts/check_account_apis.sh` |
+- `farm/`：按账号、采集、存储、交付、网络、Web 分组，见 [目录说明](PROJECT_MAP.md)。
+- `mtgsig/`：当前签名、指纹加解密、a7 上报构造与必要算法资源。
+- `rpc/`：无账号状态的 HTTP 包装，无部署器、远程更新器或身份文件读取接口。
+- `tests/`：现用功能回归，按模块分组，见 [测试用途](docs/TESTING.md)。
+- `scripts/`、`config/`、`deploy/`：启动、日常检查、示例配置和 Linux 服务单元。
+- `docs/`：当前用法与必要协议证据；旧实验从 Git 历史找回。
 
-先看 [运行指南](docs/OPERATIONS.md)，再看 [目录清单](PROJECT_MAP.md)、[全流程](docs/COLLECTION_FLOW.md) 和 [协议更新](docs/PROTOCOL_UPDATE.md)。[架构建议](docs/ARCHITECTURE.md) 区分已具备的进程边界和下一步待优化内容。
-
-## 验证
+## 更新服务器
 
 ```bash
-./scripts/python.sh -m unittest discover -s tests -q
-./scripts/python.sh scripts/smoke_services.py
-./scripts/python.sh scripts/verify_repository.py
-./scripts/python.sh scripts/check_staged.py --all
+git pull --ff-only
+./scripts/python.sh -m pip install -r requirements.lock
+sudo systemctl restart keeta-rpc
 ```
 
-单测及服务烟测使用合成材料和本机临时端口，不调用真实业务接口；MySQL 集成测试需要专用测试库和显式开关。RPC 发布包会独立打包、测试、验证并支持代码回滚，见 [RPC 部署](rpc/README.md)。
+若更新采集服务，确认当前没有在途任务后重启 `keeta-web`、`keeta-worker`；代理代码变化时再重启 `keeta-proxy`。本机进程用相同入口重新运行即可，无单独发布包。具体步骤见 [运行指南](docs/OPERATIONS.md)。
 
-## 数据与历史
+## 验证与数据
 
-`.private/` 保存数据库配置、密钥、响应文件、a7 使用日志和代理配置；`exports/` 保存交付。ZIP 默认只有 Excel；超长子菜字段保存在同一表的附加工作表。它们必须单独备份，不能提交。切换运行目录时要保留原额度、冷却、a7 和计数，不能只复制账号 JSON 后清零启动。迁移步骤见运行指南。
+```bash
+./scripts/python.sh -m unittest discover -s tests -t . -q
+./scripts/python.sh scripts/smoke_services.py
+./scripts/python.sh scripts/verify_repository.py
+```
 
-原研究与被替代文档留在旧仓库 `keeta-device` 的 `codex/keeta-project` 分支。这里仅保留当前指南、关键原生证据和必要算法笔记，不继承旧 Git 历史或独立暂存区发布机制。
+默认测试使用合成数据；真实 SQL 验证需显式提供独立测试库。真实账号请求使用 [账号检查命令](docs/ACCOUNT_CHECKS.md)，不会因运行单测而发起。
+
+`.private/` 与 `exports/` 不提交。默认交付 ZIP 只有 `delivery.xlsx`，超长子菜嵌入工作簿“长字段内容”页。备份需要同时保存 MySQL、私有密钥、响应文件和需要的交付。更新代码不重置额度、冷却、签名计数或 a7。

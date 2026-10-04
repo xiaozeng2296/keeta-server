@@ -15,13 +15,12 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 from .a9_codec import DEFAULT_SALT, derive_mask
-from .local_identity import DEFAULT_LOCAL_XID_PROFILE
 
 STORAGE_KEY = 'sakguard_dynamic_enc_salt_config_key'
 MAX_CONFIG_BYTES = 4096
 # k0.k1 and IV were compared with the running 3.12.500 SDK constant table.
-_KEY = DEFAULT_LOCAL_XID_PROFILE.key
-_IV = DEFAULT_LOCAL_XID_PROFILE.iv
+_KEY = b"meituan1sankuai0"
+_IV = b"0102030405060708"
 
 
 @dataclass(frozen=True)

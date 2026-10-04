@@ -136,7 +136,7 @@ def build_report(bundle, signer, *, timestamp_ms, session_key=None):
               'm154': col['b4'], 'm294': col['b1']}
     if any(not isinstance(value, str) or not value for value in fields.values()):
         raise ValueError('own fingerprint fields missing')
-    from farm.fullsign import k2buf
+    from mtgsig.signer import k2buf
     fields['m320'] = compute_m320(fields, appkey=dev['a1'], version=cfg['checksum_version'],
                                 sdk_flag=signer.signature_counter,
                                 provider_mask=k2buf(dev['a1'], signer.signing_profile))

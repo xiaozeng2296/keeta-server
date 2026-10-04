@@ -4,15 +4,15 @@
 
 ## 启动
 
-安装 `requirements.lock`；将 `config/mysql.example.json` 复制到 `.private/mysql.json` 并配置 MySQL 8。接已有库时必须恢复原 `account_encryption.key`，均设为 0600。空库执行 `scripts/python.sh -m farm.mysql_cli init`。
+安装 `requirements.lock`；将 `config/mysql.example.json` 复制到 `.private/mysql.json` 并配置 MySQL 8。接已有库时必须恢复原 `account_encryption.key`，均设为 0600。空库执行 `scripts/python.sh -m farm.cli init`。
 
 ```bash
-scripts/start_panel.sh --no-worker --port 8788
+scripts/start_panel.sh --port 8788
 scripts/start_worker.sh
 scripts/start_rpc.sh --port 8799
 ```
 
-Web 与签名 RPC 默认只监听本机。Worker 是唯一调度入口，只有面板明确排队的批次会执行；仅导入/准备不会自动采集。旧 Web 内嵌执行器选项仍兼容，但部署建议分进程。
+Web 与签名 RPC 默认只监听本机。Worker 是唯一调度入口，只有面板明确排队的批次会执行；仅导入/准备不会自动采集。Web 不启动执行器或代理，三者分别启动。
 
 ## 代理
 
@@ -27,48 +27,54 @@ Web 与签名 RPC 默认只监听本机。Worker 是唯一调度入口，只有�
 scripts/start_proxy.sh                  # 仅检查配置
 scripts/start_proxy.sh --register       # 保存面板节点映射
 scripts/start_proxy.sh --run            # 独立核心，不改桌面 Clash
-scripts/python.sh -m tools.proxy_chain_bridge --config .private/proxy-chain.json --run --gost /opt/homebrew/bin/gost
+scripts/python.sh -m farm.network.chain --config .private/proxy-chain.json --run --gost /opt/homebrew/bin/gost
 ```
 
 `Clash → IPFoxy` 是串行出口，不能当作两个 IP。节点名称不同也不保证公网 IP 不同。现有默认绑定每条路由最多一个请求；批次 routes 中可显式设定上限，迁移账号保留原上限。
 
 ## 准备、启动、验收
 
-账号从面板导入，邮箱缓存随运行状态保留。a7 维护需要匹配的材料，见 `tools/refresh_fingerprint.py --help`。
+账号从面板导入，邮箱缓存随运行状态保留。a7 维护需要匹配的材料，见 `python -m farm.accounts.maintenance --help`。
 
 ```bash
 # 推荐发现必须显式执行，使用所选账号当前会话/出口/额度
-scripts/python.sh -m farm.recommendations --account 1 --latitude=-23.55 --longitude=-46.63 \
+scripts/python.sh -m farm.collection.recommendations --account 1 --latitude=-23.55 --longitude=-46.63 \
   --city-id 102302389 --pages 6 --output exports/recommendation-run --execute
 
 # shops.json 格式见 config/shops.example.json；使用文件中的全部店铺
-scripts/python.sh -m farm.batch_prepare --shops .private/shops.json --accounts 1,2,3 \
+scripts/python.sh -m farm.collection.prepare --shops .private/shops.json --accounts 1,2,3 \
   --routes .private/routes.json --concurrency 3 --detail-delay 4 --execute
 ```
 
 准备器仅创建 ready 批次并保存明确的出口配置，不暂停账号、不重置额度、不发送业务请求。到面板选择输出的 run_id 和账号，设置并发、间隔并启动。Worker 保留冷却、额度与真实签名状态。加 `--verify-open` 会先核验所有 shopInfo；全部营业才释放菜单，发现闭店则停止在明确阻塞状态，不自行替换范围。
 
 ```bash
-scripts/python.sh -m farm.batch_report RUN_ID --output exports/benchmark.json
-scripts/python.sh -m farm.batch_audit exports/execution-EXECUTION_ID
+scripts/python.sh -m farm.delivery.report RUN_ID --output exports/benchmark.json
+scripts/python.sh -m farm.delivery.audit exports/execution-EXECUTION_ID
 ```
 
 普通接口无额外四秒等待，仅同账号定制详情需要间隔。403 保护、手动停止及额度等待不会靠重启清零。网络问题与 403 分开处理；失去数据库连接后先提交已落盘响应，再恢复调度，不重复发包。
 
 默认交付：`exports/execution-ID/delivery.xlsx` 和仅含该表的 `delivery.zip`。超长字段在表内“长字段内容”工作表；按引用ID和分片序号拼接即可恢复原值。`delivery.coverage.json` 是本机验收报告，不放进默认 ZIP。响应体在 `.private/responses/`。
 
-## 从旧双账本迁移
+## 更新代码
 
-旧 SQLite 只在一次性私有迁移中只读使用，不再是新程序依赖。必须先停止旧调度、确认无在途请求，再备份原数据库/密钥和旧目录；按活动 session 合并最新签名/a7、逐次 attempts、预算下限、冷却和休息。不能把继承的预算快照逐批累加。
+```bash
+git pull --ff-only
+scripts/python.sh -m pip install -r requirements.lock
+sudo systemctl restart keeta-rpc
+# 更新采集代码时，先确认没有采集中/在途任务，再执行：
+sudo systemctl restart keeta-web keeta-worker
+```
 
-迁移幂等标记与备份保留在本机；旧历史面板改读 `history.json`。旧目录保存原 SQLite 和原 ZIP，新运行目录不读取它们。历史 DB 响应可迁成本机引用；启用后旧代码不能再直接解压该字段。代码回滚不能回滚已发生的请求、额度与签名计数。
+systemd 模板在 deploy，安装时按服务器目录修改 WorkingDirectory/ExecStart。本机直接结束空闲旧进程，再用原启动脚本运行。代理核心代码有变化才重启 keeta-proxy；无需重新导入账号或重新初始化现有数据。
 
-备份/搬机必须同时保存 MySQL、`.private` 和需要的 `exports`。不要只迁账号 JSON 后重新从零计数。
+代码更新不覆盖 .private 和 exports。备份/搬机须同时保存 MySQL、账号加密密钥、a7 维护记录、本机响应和需要的交付。旧结构说明见 [整理记录](MIGRATION.md)。
 
 ## 验证
 
 ```bash
-scripts/python.sh -m unittest discover -s tests -q
+scripts/python.sh -m unittest discover -s tests -t . -q
 scripts/python.sh scripts/smoke_services.py
 scripts/python.sh scripts/verify_repository.py
 scripts/python.sh scripts/check_staged.py --all
