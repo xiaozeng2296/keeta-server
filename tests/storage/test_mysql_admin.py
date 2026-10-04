@@ -295,6 +295,69 @@ class DurableRecoveryIntegrationTests(unittest.TestCase):
 
 
 class DurableNetworkBackoffTests(unittest.TestCase):
+    def test_route_403_history_keeps_other_routes_running_and_survives_reload(self):
+        from datetime import datetime,timedelta
+        from farm.collection.executions import RouteRejections
+        now=datetime(2026,10,4,16,0);keys={1:'A',2:'A',3:'B',4:'C'}
+        history=[(1,403,now),(2,403,now+timedelta(seconds=1)),
+                 (3,200,now+timedelta(seconds=2)),(1,403,now+timedelta(seconds=3)),
+                 (1,None,now+timedelta(seconds=4)),(2,403,now+timedelta(seconds=5))]
+        for _ in range(2):
+            health=RouteRejections(keys)
+            for row in history:health.record(*row)
+            self.assertFalse(health.ready(1,now+timedelta(minutes=1)))
+            self.assertFalse(health.ready(2,now+timedelta(minutes=1)))
+            self.assertTrue(health.ready(3,now+timedelta(minutes=1)))
+            self.assertTrue(health.ready(4,now+timedelta(minutes=1)))
+            self.assertTrue(health.ready(1,now+timedelta(minutes=16)))
+            # A late in-flight success must not clear a newly tripped route.
+            health.record(1,200,now+timedelta(seconds=6))
+            self.assertFalse(health.ready(1,now+timedelta(minutes=1)))
+
+    def test_route_403_requires_multiple_accounts_and_own_http_success_resets_streak(self):
+        from farm.collection.executions import RouteRejections
+        from farm.storage.mysql import utcnow
+        now=utcnow();health=RouteRejections({1:'A',2:'A'})
+        for _ in range(4):health.record(1,403,now)
+        self.assertTrue(health.ready(1,now))
+        health.record(2,200,now)
+        health.record(2,403,now)
+        self.assertTrue(health.ready(1,now))
+
+    def test_cross_account_403_rotates_beyond_concurrency_and_isolates_only_failed_route(self):
+        from farm.collection.executions import ExecutionManager,RouteRejections
+        store=Mock();manager=ExecutionManager(store);manager.record_progress=Mock();calls=[]
+        store.rows.return_value=[{'state':'running','owner':manager.owner,'stop_requested':False}]
+        manager.route_rejections=RouteRejections({1:'A',2:'A',3:'A',4:'A',5:'B',6:'B',7:'C'})
+        def claim(*args,**kwargs):
+            options=kwargs['account_ids']
+            aid=next(a for a in options if a not in calls)
+            return {'account_id':aid,'task':{'shop_job_id':1}}
+        def execute(claim):
+            aid=claim['account_id'];calls.append(aid)
+            return {'account_id':aid,'endpoint':'shopInfo','sent':True,
+                    'http':403 if aid<=4 else 200,'outcome':'rejected' if aid<=4 else 'success'}
+        job={'id':1,'run_id':1,'account_ids':list(range(1,8)),'endpoints':['shopInfo'],
+             'environment':'test','max_requests':7,'processed':0,'delay_seconds':0}
+        with patch('farm.collection.executions.Worker') as worker:
+            worker.return_value.claim.side_effect=claim;worker.return_value.execute.side_effect=execute
+            self.assertEqual(manager._collect(job,{'concurrency':1}),('limit','request_limit'))
+        self.assertEqual(calls,list(range(1,8)))
+        self.assertFalse(manager.route_rejections.ready(1));self.assertTrue(manager.route_rejections.ready(5))
+
+    def test_all_quarantined_routes_wait_without_sending_or_failing_batch(self):
+        from farm.collection.executions import ExecutionManager,RouteRejections
+        from farm.storage.mysql import utcnow
+        store=Mock();manager=ExecutionManager(store);manager.record_progress=Mock()
+        store.rows.return_value=[{'state':'running','owner':manager.owner,'stop_requested':False}]
+        manager.route_rejections=RouteRejections({1:'A',2:'A'})
+        for aid in (1,2,1,2):manager.route_rejections.record(aid,403,utcnow())
+        job={'id':1,'run_id':1,'account_ids':[1,2],'endpoints':['shopInfo'],
+             'environment':'test','max_requests':7,'processed':0,'delay_seconds':0}
+        with patch('farm.collection.executions.Worker') as worker:
+            self.assertEqual(manager._collect(job,{'concurrency':2}),('waiting','route_http403_cooldown'))
+            worker.return_value.claim.assert_not_called();worker.return_value.execute.assert_not_called()
+
     def test_parallel_route_failure_allows_other_accounts_to_continue(self):
         from contextlib import contextmanager
         from farm.collection.executions import ExecutionManager

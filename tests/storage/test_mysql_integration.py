@@ -486,6 +486,16 @@ class LocalStorageWorkflowTests(unittest.TestCase):
     setUp=MysqlIntegrationTests.setUp
     tearDown=MysqlIntegrationTests.tearDown
 
+    def test_route_quarantine_during_claim_releases_gate_without_usage(self):
+        import threading
+        gate=threading.BoundedSemaphore(1);self.worker.route_gates={self.aid:gate}
+        # The route becomes unavailable while this claim reads account state.
+        self.worker.account_ready=Mock(side_effect=[True,False])
+        self.assertIsNone(self.worker.claim(self.rid,self.aid))
+        self.assertTrue(gate.acquire(blocking=False));gate.release()
+        self.assertEqual(self.store.rows('SELECT COUNT(*) n FROM request_attempts WHERE account_id=%s',(self.aid,))[0]['n'],0)
+        self.assertEqual(self.store.rows('SELECT state FROM tasks WHERE shop_job_id=%s',(self.job,))[0]['state'],'pending')
+
     def test_claim_connection_reuse_releases_account_and_untracked_locks(self):
         con=self.store.lock_connection();extra='validation:'+self.tag
         try:

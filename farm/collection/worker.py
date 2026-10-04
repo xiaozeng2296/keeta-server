@@ -223,6 +223,8 @@ class Worker:
         last=getattr(self,'last_account_id',0)
         accounts=sorted(accounts,key=lambda a:(a['account_id']<=last,a['account_id']))
         for account in accounts:
+            ready=getattr(self,'account_ready',None)
+            if ready is not None and not ready(account['account_id']):continue
             if getattr(self,'fingerprint_wait_until',{}).get(account['account_id'],0)>time.time():continue
             con=self.store.lock_connection();locks=[];claim=None;gate=None
             try:
@@ -277,6 +279,7 @@ class Worker:
                     if task is None:continue
                     gate=getattr(self,'route_gates',{}).get(account['account_id'])
                     if gate is not None and not gate.acquire(blocking=False):gate=None;continue
+                    if ready is not None and not ready(account['account_id']):continue
                     endpoint=task['endpoint'];owner=str(uuid.uuid4());attempt_id=digest(['worker',owner,task['id']])
                     c.execute('INSERT INTO daily_usage(account_id,business_date,endpoint,reserved_count) VALUES(%s,%s,%s,1) ON DUPLICATE KEY UPDATE reserved_count=reserved_count+1',(account['account_id'],today,endpoint))
                     c.execute("UPDATE tasks SET state='leased',lease_owner=%s,lease_until=%s,updated_at=%s WHERE id=%s",(owner,now+timedelta(minutes=3),now,task['id']))
