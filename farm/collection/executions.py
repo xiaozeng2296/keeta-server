@@ -19,39 +19,6 @@ from farm.accounts.importer import refresh_account_material
 EXPORT_ROOT = ROOT / 'exports'
 
 
-class RouteRejections:
-    """Four consecutive 403s across accounts suspend only that route for 15m.
-
-    Rebuilt from the durable attempt ledger on every execution pass. Network
-    failures do not establish recovery; account/endpoint cooldowns stay intact.
-    """
-    def __init__(self,keys):
-        self.keys=keys;self.streaks={};self.until={}
-
-    def key(self,account):
-        return self.keys.get(account,'account:'+str(account))
-
-    def record(self,account,http,at):
-        key=self.key(account);until=self.until.get(key)
-        if until and at<until:return
-        if until:
-            self.until.pop(key,None);self.streaks.pop(key,None)
-        if http==403:
-            streak=self.streaks.setdefault(key,[]);streak.append(account)
-            self.streaks[key]=streak[-4:]
-            if len(streak)>=4 and len(set(streak[-4:]))>=2:
-                self.until[key]=at+timedelta(minutes=15)
-        elif http is not None:self.streaks.pop(key,None)
-
-    def ready(self,account,now=None):
-        until=self.until.get(self.key(account))
-        return until is None or until<=(now or utcnow())
-
-    def blocked(self,now=None):
-        now=now or utcnow()
-        return {key:until for key,until in self.until.items() if until>now}
-
-
 def create_execution(store, run_id, environment, ids=None, tags=None, endpoints=None,
                      max_requests=100, delay=4, auto_resume=False, concurrency=1):
     ids = parse_ids(ids); tags = parse_tags(tags)
@@ -263,8 +230,7 @@ class ExecutionManager:
             accounts=select_accounts(self.store,job['environment'],unpack_json(job['account_ids']),selection.get('tags'))
             endpoints=unpack_json(job['endpoints'])
             diagnostics=Worker(self.store).diagnose([a['id'] for a in accounts],endpoints,allow_recovery=True)
-            self.configure_routes(job)
-            eligible={d['endpoint'] for d in diagnostics if d['reason']=='eligible' and self.route_rejections.ready(d['account_id'])}
+            eligible={d['endpoint'] for d in diagnostics if d['reason']=='eligible'}
             if remaining:
                 if not eligible:continue
                 placeholders=','.join(['%s']*len(eligible))
@@ -315,11 +281,6 @@ class ExecutionManager:
             keys[aid]=key;limits[key]=min(limits.get(key,limit),limit)
         for key,limit in limits.items():gates[key]=threading.BoundedSemaphore(limit)
         self.route_gates={aid:gates[key] for aid,key in keys.items()}
-        self.route_rejections=RouteRejections(keys)
-        history=self.store.rows("SELECT a.account_id,a.http_status,a.finished_at FROM request_attempts a JOIN tasks t ON t.id=a.task_id JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s AND a.counts_budget=TRUE AND a.state='done' AND a.finished_at IS NOT NULL ORDER BY a.finished_at,a.id",(job['run_id'],))
-        for attempt in history:
-            if attempt['account_id'] in keys:
-                self.route_rejections.record(attempt['account_id'],attempt['http_status'],attempt['finished_at'])
 
     def release_opening_selection(self,run_id):
         from farm.storage.responses import load_response
@@ -344,10 +305,9 @@ class ExecutionManager:
         if not accounts:return 'waiting','no_eligible_account_or_work'
         remaining=max(0,job['max_requests']-job['processed'])
         lock=threading.Lock();halt=threading.Event();terminal=[];network_failures=[]
-        health=getattr(self,'route_rejections',RouteRejections({}))
         detail_ready={};in_flight=0;unavailable=set()
         def account_ready(aid):
-            with lock:return aid not in unavailable and health.ready(aid)
+            with lock:return aid not in unavailable
         def stop(state,reason):
             with lock:
                 if not terminal:terminal.append((state,reason))
@@ -377,7 +337,7 @@ class ExecutionManager:
             try:
                 while ids and not halt.is_set() and active():
                     with lock:
-                        ids=[aid for aid in ids if aid not in unavailable and health.ready(aid)]
+                        ids=[aid for aid in ids if aid not in unavailable]
                         if not ids:return
                         if remaining<=0:return
                         remaining-=1
@@ -403,9 +363,8 @@ class ExecutionManager:
                     try:result=worker.execute(claim)
                     finally:
                         with lock:in_flight-=1
-                    if result.get('sent'):
-                        with lock:
-                            health.record(result['account_id'],result.get('http'),utcnow())
+                    # Business 403 does not establish a route outage. Worker
+                    # retains this account's cooldown; peers can use the route.
                     if result.get('sent') and result['endpoint']=='productSpecifics':
                         worker.details_ready_at[result['account_id']]=time.monotonic()+float(job['delay_seconds'])
                     if result['outcome']=='success' and result['endpoint'] in ('productList','productRender','productSpecifics'):
@@ -436,7 +395,6 @@ class ExecutionManager:
         if terminal:return terminal[0]
         if remaining<=0:return 'limit','request_limit'
         if network_failures:return 'waiting','transport_error'
-        if health.blocked():return 'waiting','route_http403_cooldown'
         return 'waiting','no_eligible_account_or_work'
 
     def execute(self, job):
@@ -467,7 +425,6 @@ class ExecutionManager:
                 diagnostics=worker.diagnose(unpack_json(job['account_ids']),unpack_json(job['endpoints']))
             summary=export_bundle(self.store,job['run_id'],EXPORT_ROOT/f'execution-{job["id"]}')
             summary['account_diagnostics']=diagnostics
-            summary['route_cooldowns']={key:until.isoformat()+'Z' for key,until in self.route_rejections.blocked().items()}
             counts=self.store.rows("SELECT COUNT(*) total,SUM(t.state='succeeded' OR (t.state='covered_by_details' AND t.endpoint='productRender') OR (t.state IN ('skipped_closed','skipped_unavailable') AND t.endpoint='productSpecifics')) done FROM tasks t JOIN shop_jobs j ON j.id=t.shop_job_id WHERE j.run_id=%s",(job['run_id'],))[0]
             if counts['total'] and counts['total']==counts['done']:
                 if summary['partial_shop_jobs']==0:

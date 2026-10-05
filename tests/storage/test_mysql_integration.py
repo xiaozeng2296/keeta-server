@@ -486,7 +486,7 @@ class LocalStorageWorkflowTests(unittest.TestCase):
     setUp=MysqlIntegrationTests.setUp
     tearDown=MysqlIntegrationTests.tearDown
 
-    def test_route_quarantine_during_claim_releases_gate_without_usage(self):
+    def test_transport_exclusion_during_claim_releases_gate_without_usage(self):
         import threading
         gate=threading.BoundedSemaphore(1);self.worker.route_gates={self.aid:gate}
         # The route becomes unavailable while this claim reads account state.
